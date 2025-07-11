@@ -1703,7 +1703,11 @@ Python 标准库中还有一类函数是不需要`import`就能够直接使用�
 | `sum`   | 对一个序列中的项从左到右进行求和运算，例如：`sum(range(1, 101))`会返回`5050`。 |
 | `type`  | 返回对象的类型，例如：`type(10)`会返回`int`；而` type('hello')`会返回`str`。 |
 
+在 Python 中，**可迭代对象（Iterable）** 是指**可以被遍历（迭代）的对象**，即能够提供一个迭代器（Iterator）来逐个访问其元素的对象。简单来说，任何可以用在 `for` 循环中的对象，都是可迭代对象。
+
 ## 14.函数应用实战
+
+### 随机验证码
 
 设计一个生成随机验证码的函数，验证码由数字和英文大小写字母构成，长度可以通过参数设置。
 
@@ -1764,11 +1768,759 @@ def generate_code(*, code_len=4):
 >
 > **说明**：我们设计的`generate_code`函数的参数是命名关键字参数，由于它有默认值，可以不给它传值，使用默认值4。如果需要给函数传入参数，必须指定参数名`code_len`。
 
+设计一个判断给定的大于1的正整数是不是质数的函数。质数是只能被1和自身整除的正整数（大于1），如果一个大于 1 的正整数 N 是质数，那就意味着在 2 到 N−1 之间都没有它的因子。
+
+### 判断素数
+
+设计一个判断给定的大于1的正整数是不是质数的函数。质数是只能被1和自身整除的正整数（大于1），如果一个大于 1 的正整数 N 是质数，那就意味着在 2 到 N−1 之间都没有它的因子。
+
+```python
+# 自己代码
+def prime(n):
+    if n <2:
+        return False
+    for i in range(2,int(n**0.5)+1):
+        if n % i == 0:
+            return False
+    return True
 
 
+# 答案
+def is_prime(num: int) -> bool:
+    """
+    判断一个正整数是不是质数
+    :param num: 大于1的正整数
+    :return: 如果num是质数返回True，否则返回False
+    """
+    for i in range(2, int(num ** 0.5) + 1):
+        if num % i == 0:
+            return False
+    return True
+```
+
+> **说明1**：上面`is_prime`函数的参数`num`后面的`: int`用来标注参数的类型，虽然它对代码的执行结果不产生任何影响，但是很好的增强了代码的可读性。同理，参数列表后面的`-> bool`用来标注函数返回值的类型，它也不会对代码的执行结果产生影响，但是却让我们清楚的知道，调用函数会得到一个布尔值，要么是`True`，要么是`False`。
+
+### 最大公约数和最小公倍数
+
+设计计算两个正整数最大公约数和最小公倍数的函数。 x 和 y 的最大公约数是能够同时整除 x 和 y 的最大整数，如果 x 和 y 互质，那么它们的最大公约数为 1； x 和 y 的最小公倍数是能够同时被 x 和 y 整除的最小正整数，如果 x 和 y 互质，那么它们的最小公倍数为 x×y 。需要提醒大家注意的是，计算最大公约数和最小公倍数是两个不同的功能，应该设计成两个函数，而不是把两个功能放到同一个函数中。
+
+```python
+# 敲
+def greatest_common_divisor(a: int, b: int):
+    if a < b:
+        while b % a != 0:
+            a, b = b % a, a
+        return a
+    else:
+        while a % b != 0:
+            a, b = b, a % b
+        return b
+
+def least_common_multiple(a: int, b: int):
+    return a * b // greatest_common_divisor(a, b)
+    
+   
+# 答案
+def lcm(x: int, y: int) -> int:
+    """求最小公倍数"""
+    return x * y // gcd(x, y)
 
 
+def gcd(x: int, y: int) -> int:
+    """求最大公约数"""
+    while y % x != 0:
+        x, y = y % x, x
+    return x
+```
+
+### 数据统计
+
+假设样本数据保存一个列表中，设计计算样本数据描述性统计信息的函数。描述性统计信息通常包括：算术平均值、中位数、极差（最大值和最小值的差）、方差、标准差、变异系数等，计算公式如下所示。
+
+样本均值（sample mean）：
+$$
+\bar{x} = \frac{\sum_{i=1}^{n} x_i}{n}
+$$
+样本方差（sample variance）：
+$$
+s^2 = \frac{1}{n-1} \sum_{i=1}^{n} (x_i - \bar{x})^2
+$$
+样本标准差（sample standard deviation）：
+$$
+s = \sqrt{\frac{1}{n-1} \sum_{i=1}^{n} (x_i - \bar{x})^2}
+$$
+变异系数（coefficient of sample variation）：
+$$
+CV = \frac{s}{\bar{x}} \times 100\%
+$$
+
+```python
+# 敲
+def sample_mean(data):
+    return sum(data)/len(data)
+
+def median(data):
+    data.sort()
+    if len(data) % 2 == 0:
+        return (data[len(data)//2] + data[len(data)//2 - 1])/2
+    else:
+        return data[len(data)//2]
+
+def ptp(data):
+    return max(data) - min(data)
+
+def sample_variance(data):
+    return sum((x - sample_mean(data))**2 for x in data)/(len(data)-1)
+
+def sample_standard_deviation(data):
+    return pow(sample_variance(data),0.5)
+
+def coefficient_of_sample_variation(data):
+    return sample_standard_deviation(data)/sample_mean(data)
+    
+    
+# 答案
+def ptp(data):
+    """极差（全距）"""
+    return max(data) - min(data)
 
 
+def mean(data):
+    """算术平均"""
+    return sum(data) / len(data)
 
 
+def median(data):
+    """中位数"""
+    temp, size = sorted(data), len(data)
+    if size % 2 != 0:
+        return temp[size // 2]
+    else:
+        return mean(temp[size // 2 - 1:size // 2 + 1])
+
+
+def var(data, ddof=1):
+    """方差"""
+    x_bar = mean(data)
+    temp = [(num - x_bar) ** 2 for num in data]
+    return sum(temp) / (len(temp) - ddof)
+
+
+def std(data, ddof=1):
+    """标准差"""
+    return var(data, ddof) ** 0.5
+
+
+def cv(data, ddof=1):
+    """变异系数"""
+    return std(data, ddof) / mean(data)
+
+
+def describe(data):
+    """输出描述性统计信息"""
+    print(f'均值: {mean(data)}')
+    print(f'中位数: {median(data)}')
+    print(f'极差: {ptp(data)}')
+    print(f'方差: {var(data)}')
+    print(f'标准差: {std(data)}')
+    print(f'变异系数: {cv(data)}')
+```
+
+> **说明1**：中位数是将数据按照升序或降序排列后位于中间的数，它描述了数据的中等水平。中位数的计算分两种情况：当数据体量$n$为奇数时，中位数是位于 (n+1)/2 位置的元素；当数据体量 n 为偶数时，中位数是位于 n/2 和 n/2+1 两个位置元素的均值。
+>
+> **说明2**：计算方差和标准差的函数中有一个名为`ddof`的参数，它代表了可以调整的自由度，默认值为 1。在计算样本方差和样本标准差时，需要进行自由度校正；如果要计算总体方差和总体标准差，可以将`ddof`参数赋值为 0，即不需要进行自由度校正。
+>
+> **说明3**：`describe`函数将上面封装好的统计函数组装到一起，用于输出数据的描述性统计信息。事实上，Python 标准库中有一个名为`statistics`的模块，它已经把获取描述性统计信息的函数封装好了，有兴趣的读者可以自行了解。
+
+#### **1. 集中趋势度量**
+
+| 函数                  | 说明                         | 示例                               |
+| --------------------- | ---------------------------- | ---------------------------------- |
+| `mean(data)`          | 计算算术平均数（均值）       | `mean([1, 2, 3, 4]) → 2.5`         |
+| `median(data)`        | 计算中位数（中间值）         | `median([1, 3, 2]) → 2`            |
+| `mode(data)`          | 计算众数（出现次数最多的值） | `mode([1, 2, 2, 3]) → 2`           |
+| `harmonic_mean(data)` | 计算调和平均数               | `harmonic_mean([1, 2, 4]) → 1.714` |
+
+#### **2. 离散程度度量**
+
+| 函数              | 说明           | 示例                           |
+| ----------------- | -------------- | ------------------------------ |
+| `pstdev(data)`    | 计算总体标准差 | `pstdev([1, 2, 3]) → 0.816`    |
+| `pvariance(data)` | 计算总体方差   | `pvariance([1, 2, 3]) → 0.667` |
+| `stdev(data)`     | 计算样本标准差 | `stdev([1, 2, 3]) → 1.0`       |
+| `variance(data)`  | 计算样本方差   | `variance([1, 2, 3]) → 1.0`    |
+
+调和平均数（Harmonic Mean）是一种特殊的平均数，主要用于计算**速率的平均值**或**处理具有比率性质的数据**。它的计算方式与算术平均数和几何平均数不同，尤其适用于 “时间 - 速度”“距离 - 效率” 等问题。
+
+对于 *n* 个正数 *x*1,*x*2,…,*xn*，调和平均数 *H* 的计算公式为：
+$$
+H = \frac{n}{\sum_{i=1}^{n} \frac{1}{x_i}}
+$$
+**文字描述**：调和平均数等于数据个数除以各数据倒数之和。
+
+### 双色球随机选号
+
+我们用函数重构之前讲过的双色球随机选号的例子（《第09课：常用数据结构之列表-2》），将生成随机号码和输出一组号码的功能分别封装到两个函数中，然后通过调用函数实现机选`N`注号码的功能。
+
+```python
+"""
+双色球随机选号程序
+
+Author: 骆昊
+Version: 1.3
+"""
+import random
+
+RED_BALLS = [i for i in range(1, 34)]
+BLUE_BALLS = [i for i in range(1, 17)]
+
+
+def choose():
+    """
+    生成一组随机号码
+    :return: 保存随机号码的列表
+    """
+    selected_balls = random.sample(RED_BALLS, 6)
+    selected_balls.sort()
+    selected_balls.append(random.choice(BLUE_BALLS))
+    return selected_balls
+
+
+def display(balls):
+    """
+    格式输出一组号码
+    :param balls: 保存随机号码的列表
+    """
+    for ball in balls[:-1]:
+        print(f'\033[031m{ball:0>2d}\033[0m', end=' ')
+    print(f'\033[034m{balls[-1]:0>2d}\033[0m')
+
+
+n = int(input('生成几注号码: '))
+for _ in range(n):
+    display(choose())
+```
+
+## 15.函数使用进阶
+
+**Python 中的函数是“一等函数”**，所谓“一等函数”指的就是函数可以赋值给变量，函数可以作为函数的参数，函数也可以作为函数的返回值。把一个函数作为其他函数的参数或返回值的用法，我们通常称之为“高阶函数”。
+
+### 高阶函数
+
+我们回到之前讲过的一个例子，设计一个函数，传入任意多个参数，对其中`int`类型或`float`类型的元素实现求和操作。
+
+```python
+def calc(*args, **kwargs):
+    items = list(args) + list(kwargs.values())
+    result = 0
+    for item in items:
+        if type(item) in (int, float):
+            result += item
+    return result
+```
+
+如果我们希望上面的`calc`函数不仅仅可以做多个参数的求和，还可以实现更多的甚至是自定义的二元运算，我们该怎么做呢？上面的代码只能求和是因为函数中使用了`+=`运算符，这使得函数跟加法运算形成了耦合关系，如果能解除这种耦合关系，函数的通用性和灵活性就会更好。解除耦合的办法就是将`+`运算符变成函数调用，并将其设计为函数的参数
+
+```python
+def calc(init_value, op_func, *args, **kwargs):
+    items = list(args) + list(kwargs.values())
+    result = init_value
+    for item in items:
+        if type(item) in (int, float):
+            result = op_func(result, item)
+    return result
+```
+
+注意，上面的函数增加了两个参数，其中`init_value`代表运算的初始值，`op_func`代表二元运算函数，为了调用修改后的函数，我们先定义做加法和乘法运算的函数
+
+```python
+def add(x, y):
+    return x + y
+
+
+def mul(x, y):
+    return x * y
+
+print(calc(0, add, 1, 2, 3, 4, 5))  # 15
+print(calc(1, mul, 1, 2, 3, 4, 5))  # 120 
+```
+
+上面的`calc`函数通过将运算符变成函数的参数，实现了跟加法运算耦合，这是一种非常高明和实用的编程技巧，但对于最初学者来说可能会觉得难以理解，建议大家细品一下。需要注意上面的代码中，将函数作为参数传入其他函数和直接调用函数是有显著的区别的，**调用函数需要在函数名后面跟上圆括号，而把函数作为参数时只需要函数名即可**。
+
+如果我们没有提前定义好`add`和`mul`函数，也可以使用 Python 标准库中的`operator`模块提供的`add`和`mul`函数，它们分别代表了做加法和做乘法的二元运算，我们拿过来直接使用即可，代码如下所示。
+
+```python
+import operator
+
+print(calc(0, operator.add, 1, 2, 3, 4, 5))  # 15
+print(calc(1, operator.mul, 1, 2, 3, 4, 5))  # 120
+```
+
+Python 内置函数中有不少高阶函数，我们前面提到过的`filter`和`map`函数就是高阶函数，前者可以实现对序列中元素的过滤，后者可以实现对序列中元素的映射，例如我们要去掉一个整数列表中的奇数，并对所有的偶数求平方得到一个新的列表，就可以直接使用这两个函数来做到
+
+```python
+def is_even(num):
+    """判断num是不是偶数"""
+    return num % 2 == 0
+
+
+def square(num):
+    """求平方"""
+    return num ** 2
+
+
+old_nums = [35, 12, 8, 99, 60, 52]
+new_nums = list(map(square, filter(is_even, old_nums)))
+print(new_nums)  # [144, 64, 3600, 2704]
+```
+
+filter()函数过滤可迭代对象中的元素，返回满足条件的元素组成的迭代器。
+
+```python
+filter(function, iterable)
+```
+
+- **`function`**：判断函数，返回布尔值（`True` 或 `False`）。
+- **`iterable`**：待过滤的可迭代对象（如列表、元组）。
+
+map()函数对可迭代对象中的每个元素应用指定函数，返回处理后的元素组成的迭代器。
+
+```python
+map(function, iterable)
+```
+
+- **`function`**：处理函数，接收一个参数并返回处理结果。
+- **`iterable`**：待处理的可迭代对象。
+
+在 Python 中，**迭代器（Iterator）** 是一种实现了迭代协议的对象，用于逐个访问集合中的元素，而无需暴露集合的内部结构。它是 Python 迭代机制的核心，支持 `for` 循环、`next()` 函数等迭代操作。
+
+迭代器的核心特征
+
+- 惰性计算 **：迭代器不会一次性加载所有元素到内存，而是在需要时（通过 `next()` 调用）才生成下一个元素，适合处理海量数据或无限序列。**
+- 单向访问 **：元素只能从前往后依次访问，无法回退或重置（除非重新创建迭代器）。**
+- 迭代协议 ：必须实现两个特殊方法：
+  - `__iter__()`：返回迭代器自身（使迭代器可用于 `for` 循环）。
+  - `__next__()`：返回下一个元素，当没有元素时触发 `StopIteration` 异常。
+
+迭代器与可迭代对象的区别
+
+可迭代对象（Iterable）：**能被 `for` 循环遍历的对象（如列表、字符串、字典等），实现了 `__iter__()` 方法，可通过 `iter()` 函数转换为迭代器。**
+
+迭代器（Iterator）：是可迭代对象的一种，但额外实现了 `__next__()` 方法，是 “正在迭代中” 的状态对象。
+
+**关系**：所有迭代器都是可迭代对象，但并非所有可迭代对象都是迭代器。
+
+当然，要完成上面代码的功能，也可以使用列表生成式，列表生成式的做法更为简单优雅。
+
+```python
+old_nums = [35, 12, 8, 99, 60, 52]
+new_nums = [num ** 2 for num in old_nums if num % 2 == 0]
+print(new_nums)  # [144, 64, 3600, 2704]
+```
+
+我们再来讨论一个内置函数`sorted`，它可以实现对容器型数据类型（如：列表、字典等）元素的排序。我们之前讲过`list`类型的`sort`方法，它实现了对列表元素的排序，`sorted`函数从功能上来讲跟列表的`sort`方法没有区别，但它会返回排序后的列表对象，而不是直接修改原来的列表，这一点我们称为**函数的无副作用设计**，也就是说调用函数除了产生返回值以外，不会对程序的状态或外部环境产生任何其他的影响。使用`sorted`函数排序时，可以通过高阶函数的形式自定义排序的规则
+
+```python
+old_strings = ['in', 'apple', 'zoo', 'waxberry', 'pear']
+new_strings = sorted(old_strings)
+print(new_strings)  # ['apple', 'in', 'pear', waxberry', 'zoo']
+```
+
+上面的代码对大家来说并不陌生，但是如果希望根据字符串的长度而不是字母表顺序对列表元素排序，我们可以向`sorted`函数传入一个名为`key`的参数，将`key`参数赋值为获取字符串长度的函数`len`
+
+```python
+old_strings = ['in', 'apple', 'zoo', 'waxberry', 'pear']
+new_strings = sorted(old_strings, key=len)
+print(new_strings)  # ['in', 'zoo', 'pear', 'apple', 'waxberry']
+```
+
+> **说明**：列表类型的`sort`方法也有同样的`key`参数，有兴趣的读者可以自行尝试。
+
+### Lambda函数
+
+在使用高阶函数的时候，如果作为参数或者返回值的函数本身非常简单，一行代码就能够完成，也不需要考虑对函数的复用，那么我们可以使用 lambda 函数。Python 中的 lambda 函数是没有的名字函数，所以很多人也把它叫做**匿名函数**，lambda 函数只能有一行代码，代码中的表达式产生的运算结果就是这个匿名函数的返回值。之前的代码中，我们写的`is_even`和`square`函数都只有一行代码，我们可以考虑用 lambda 函数来替换掉它们
+
+```python
+old_nums = [35, 12, 8, 99, 60, 52]
+new_nums = list(map(lambda x: x ** 2, filter(lambda x: x % 2 == 0, old_nums)))
+print(new_nums)  # [144, 64, 3600, 2704]
+```
+
+通过上面的代码可以看出，定义 lambda 函数的关键字是`lambda`，后面跟函数的参数，如果有多个参数用逗号进行分隔；冒号后面的部分就是函数的执行体，通常是一个表达式，表达式的运算结果就是 lambda 函数的返回值，不需要写`return` 关键字。
+
+前面我们说过，Python 中的函数是“一等函数”，函数是可以直接赋值给变量的。在学习了 lambda 函数之后，前面我们写过的一些函数就可以用一行代码来实现它们了
+
+```python
+import functools
+import operator
+
+# 用一行代码实现计算阶乘的函数
+fac = lambda n: functools.reduce(operator.mul, range(2, n + 1), 1)
+
+# 用一行代码实现判断素数的函数
+is_prime = lambda x: all(map(lambda f: x % f, range(2, int(x ** 0.5) + 1)))
+
+# 调用Lambda函数
+print(fac(6))        # 720
+print(is_prime(37))  # True
+```
+
+> **提示1**：上面使用的`reduce`函数是 Python 标准库`functools`模块中的函数，它可以实现对一组数据的归约操作，类似于我们之前定义的`calc`函数，第一个参数是代表运算的函数，第二个参数是运算的数据，第三个参数是运算的初始值。很显然，`reduce`函数也是高阶函数，它和`filter`函数、`map`函数一起构成了处理数据中非常关键的三个动作：**过滤**、**映射**和**归约**。
+>
+> 在 Python 中，**归约操作（Reduction）** 是一种将可迭代对象（如列表、元组）通过某种规则逐步合并，最终得到单个结果的操作。它的核心是 “将多个元素缩减为一个值”，是函数式编程中的重要概念。
+>
+> **提示2**：上面判断素数的 lambda 函数通过`range`函数构造了从 2 到 x 的范围，检查这个范围有没有`x`的因子。`all`函数也是 Python 内置函数，如果传入的序列中所有的布尔值都是`True`，`all`函数返回`True`，否则`all`函数返回`False`。
+
+### 偏函数
+
+偏函数是指固定函数的某些参数，生成一个新的函数，这样就无需在每次调用函数时都传递相同的参数。在 Python 语言中，我们可以使用`functools`模块的`partial`函数来创建偏函数。例如，`int`函数在默认情况下可以将字符串视为十进制整数进行类型转换，如果我们修修改它的`base`参数，就可以定义出三个新函数，分别用于将二进制、八进制、十六进制字符串转换为整数
+
+```python
+import functools
+
+int2 = functools.partial(int, base=2)
+int8 = functools.partial(int, base=8)
+int16 = functools.partial(int, base=16)
+
+print(int('1001'))    # 1001
+
+print(int2('1001'))   # 9
+print(int8('1001'))   # 513
+print(int16('1001'))  # 4097
+```
+
+不知大家是否注意到，`partial`函数的第一个参数和返回值都是函数，它将传入的函数处理成一个新的函数返回。通过构造偏函数，我们可以结合实际的使用场景将原函数变成使用起来更为便捷的新函数，不知道大家有没有觉得这波操作很有意思。
+
+## 16.函数高级应用
+
+### 装饰器
+
+Python 语言中，装饰器是“**用一个函数装饰另外一个函数并为其提供额外的能力**”的语法现象。装饰器本身是一个函数，它的参数是被装饰的函数，它的返回值是一个带有装饰功能的函数。通过前面的描述，相信大家已经听出来了，装饰器是一个高阶函数，它的参数和返回值都是函数。但是，装饰器的概念对编程语言的初学者来说，还是让人头疼的，下面我们先通过一个简单的例子来说明装饰器的作用。假设有名为`downlaod`和`upload`的两个函数，分别用于文件的上传和下载
+
+```python
+import random
+import time
+
+
+def download(filename):
+    """下载文件"""
+    print(f'开始下载{filename}.')
+    time.sleep(random.random() * 6)
+    print(f'{filename}下载完成.')
+
+    
+def upload(filename):
+    """上传文件"""
+    print(f'开始上传{filename}.')
+    time.sleep(random.random() * 8)
+    print(f'{filename}上传完成.')
+
+    
+download('MySQL从删库到跑路.avi')
+upload('Python从入门到住院.pdf')
+```
+
+> **说明**：上面的代码用休眠一段随机时间的方式模拟了下载和上传文件需要花费一定的时间，并没有真正的联网上传下载文件。用 Python 语言实现联网上传下载文件也非常简单，后面我们会讲到相关的知识。
+
+现在有一个新的需求，我们希望知道调用`download`和`upload`函数上传下载文件到底用了多少时间，这应该如何实现呢？相信很多小伙伴已经想到了，我们可以在函数开始执行的时候记录一个时间，在函数调用结束后记录一个时间，两个时间相减就可以计算出下载或上传的时间，代码如下所示。
+
+```python
+start = time.time()
+download('MySQL从删库到跑路.avi')
+end = time.time()
+print(f'花费时间: {end - start:.2f}秒')
+start = time.time()
+upload('Python从入门到住院.pdf')
+end = time.time()
+print(f'花费时间: {end - start:.2f}秒')
+```
+
+通过上面的代码，我们可以在下载和上传文件时记录下耗费的时间，但不知道大家是否注意到，上面记录时间、计算和显示执行时间的代码都是重复代码。有编程经验的人都知道，**重复的代码是万恶之源**，那么有没有办法在不写重复代码的前提下，用一种简单优雅的方式记录下函数的执行时间呢？在 Python 语言中，装饰器就是解决这类问题的最佳选择。通过装饰器语法，我们可以把跟原来的业务（上传和下载）没有关系计时功能的代码封装到一个函数中，如果`upload`和`download`函数需要记录时间，我们直接把装饰器作用到这两个函数上即可。既然上面提到了，装饰器是一个高阶函数，它的参数和返回值都是函数，我们将记录时间的装饰器姑且命名为`record_time`，那么它的整体结构应该如下面的代码所示。
+
+```python
+def record_time(func):
+    
+    def wrapper(*args, **kwargs):
+        
+        result = func(*args, **kwargs)
+        
+        return result
+    
+    return wrapper
+```
+
+相信大家注意到了，`record_time`函数的参数`func`代表了一个被装饰的函数，函数里面定义的`wrapper`函数是带有装饰功能的函数，它会执行被装饰的函数`func`，它还需要返回在最后产生函数执行的返回值。不知大家是否留意到，上面的代码我在第4行和第6行留下了两个空行，这意味着我们可以这些地方添加代码来实现额外的功能。`record_time`函数最终会返回这个带有装饰功能的函数`wrapper`并通过它替代原函数`func`，当原函数`func`被`record_time`函数装饰后，我们调用它时其实调用的是`wrapper`函数，所以才获得了额外的能力。`wrapper`函数的参数比较特殊，由于我们要用`wrapper`替代原函数`func`，但是我们又不清楚原函数`func`会接受哪些参数，所以我们就通过可变参数和关键字参数照单全收，然后在调用`func`的时候，原封不动的全部给它。这里还要强调一下，Python 语言支持函数的嵌套定义，就像上面，我们可以在`record_time`函数中定义`wrapper`函数，这个操作在很多编程语言中并不被支持。
+
+看懂这个结构后，我们就可以把记录时间的功能写到这个装饰器中
+
+```python
+import time
+
+
+def record_time(func):
+
+    def wrapper(*args, **kwargs):
+        # 在执行被装饰的函数之前记录开始时间
+        start = time.time()
+        # 执行被装饰的函数并获取返回值
+        result = func(*args, **kwargs)
+        # 在执行被装饰的函数之后记录结束时间
+        end = time.time()
+        # 计算和显示被装饰函数的执行时间
+        print(f'{func.__name__}执行时间: {end - start:.2f}秒')
+        # 返回被装饰函数的返回值
+        return result
+    
+    return wrapper
+```
+
+写装饰器虽然颇费周折，但是这是个一劳永逸的骚操作，将来再有记录函数执行时间的需求时，我们只需要添加上面的装饰器即可。使用上面的装饰器函数有两种方式，第一种方式就是直接调用装饰器函数，传入被装饰的函数并获得返回值，我们可以用这个返回值直接替代原来的函数，那么在调用时就已经获得了装饰器提供的额外的能力（记录执行时间），大家试试下面的代码就明白了。
+
+```python
+download = record_time(download)
+upload = record_time(upload)
+download('MySQL从删库到跑路.avi')
+upload('Python从入门到住院.pdf')
+```
+
+在 Python 中，使用装饰器很有更为便捷的**语法糖**（编程语言中添加的某种语法，这种语法对语言的功能没有影响，但是使用更加方法，代码的可读性也更强，我们将其称之为“语法糖”或“糖衣语法”），可以用`@装饰器函数`将装饰器函数直接放在被装饰的函数上，效果跟上面的代码相同。我们把完整的代码为大家罗列出来，大家可以再看看我们是如何定义和使用装饰器的。
+
+```python
+import random
+import time
+
+
+def record_time(func):
+
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        print(f'{func.__name__}执行时间: {end - start:.2f}秒')
+        return result
+
+    return wrapper
+
+
+@record_time
+def download(filename):
+    print(f'开始下载{filename}.')
+    time.sleep(random.random() * 6)
+    print(f'{filename}下载完成.')
+
+
+@record_time
+def upload(filename):
+    print(f'开始上传{filename}.')
+    time.sleep(random.random() * 8)
+    print(f'{filename}上传完成.')
+
+
+download('MySQL从删库到跑路.avi')
+upload('Python从入门到住院.pdf')
+```
+
+上面的代码，我们通过装饰器语法糖为`download`和`upload`函数添加了装饰器，被装饰后的`download`和`upload`函数其实就是我们在装饰器中返回的`wrapper`函数，调用它们其实就是在调用`wrapper`函数，所以才有了记录函数执行时间的功能。
+
+如果在代码的某些地方，我们想去掉装饰器的作用执行原函数，那么在定义装饰器函数的时候，需要做一点点额外的工作。Python 标准库`functools`模块的`wraps`函数也是一个装饰器，我们将它放在`wrapper`函数上，这个装饰器可以帮我们保留被装饰之前的函数，这样在需要取消装饰器时，可以通过被装饰函数的`__wrapped__`属性获得被装饰之前的函数。
+
+```python
+import random
+import time
+
+from functools import wraps
+
+
+def record_time(func):
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        print(f'{func.__name__}执行时间: {end - start:.2f}秒')
+        return result
+
+    return wrapper
+
+
+@record_time
+def download(filename):
+    print(f'开始下载{filename}.')
+    time.sleep(random.random() * 6)
+    print(f'{filename}下载完成.')
+
+
+@record_time
+def upload(filename):
+    print(f'开始上传{filename}.')
+    time.sleep(random.random() * 8)
+    print(f'{filename}上传完成.')
+
+
+# 调用装饰后的函数会记录执行时间
+download('MySQL从删库到跑路.avi')
+upload('Python从入门到住院.pdf')
+# 取消装饰器的作用不记录执行时间
+download.__wrapped__('MySQL必知必会.pdf')
+upload.__wrapped__('Python从新手到大师.pdf')
+```
+
+**装饰器函数本身也可以参数化**，简单的说就是装饰器也是可以通过调用者传入的参数来进行定制的，这个知识点我们在后面用到的时候再为大家讲解。
+
+### 递归调用
+
+Python 中允许函数嵌套定义，也允许函数之间相互调用，而且一个函数还可以直接或间接的调用自身。函数自己调用自己称为递归调用，那么递归调用有什么用处呢？现实中，有很多问题的定义本身就是一个递归定义，例如我们之前讲到的阶乘，非负整数`N`的阶乘是`N`乘以`N-1`的阶乘，即 N!=N×(N−1)! ，定义的左边和右边都出现了阶乘的概念，所以这是一个递归定义。既然如此，我们可以使用递归调用的方式来写一个求阶乘的函数，代码如下所示。
+
+```python
+def fac(num):
+    if num in (0, 1):
+        return 1
+    return num * fac(num - 1)
+```
+
+上面的代码中，`fac`函数中又调用了`fac`函数，这就是所谓的递归调用。代码第2行的`if`条件叫做递归的收敛条件，简单的说就是什么时候要结束函数的递归调用，在计算阶乘时，如果计算到`0`或`1`的阶乘，就停止递归调用，直接返回`1`；代码第4行的`num * fac(num - 1)`是递归公式，也就是阶乘的递归定义。下面，我们简单的分析下，如果用`fac(5)`计算`5`的阶乘，整个过程会是怎样的。
+
+```python
+# 递归调用函数入栈
+# 5 * fac(4)
+# 5 * (4 * fac(3))
+# 5 * (4 * (3 * fac(2)))
+# 5 * (4 * (3 * (2 * fac(1))))
+# 停止递归函数出栈
+# 5 * (4 * (3 * (2 * 1)))
+# 5 * (4 * (3 * 2))
+# 5 * (4 * 6)
+# 5 * 24
+# 120
+print(fac(5))    # 120
+```
+
+注意，函数调用会通过内存中称为“栈”（stack）的数据结构来保存当前代码的执行现场，函数调用结束后会通过这个栈结构恢复之前的执行现场。栈是一种先进后出的数据结构，这也就意味着最早入栈的函数最后才会返回，而最后入栈的函数会最先返回。例如调用一个名为`a`的函数，函数`a`的执行体中又调用了函数`b`，函数`b`的执行体中又调用了函数`c`，那么最先入栈的函数是`a`，最先出栈的函数是`c`。每进入一个函数调用，栈就会增加一层栈帧（stack frame），栈帧就是我们刚才提到的保存当前代码执行现场的结构；每当函数调用结束后，栈就会减少一层栈帧。通常，内存中的栈空间很小，因此递归调用的次数如果太多，会导致栈溢出（stack overflow），所以**递归调用一定要确保能够快速收敛**。我们可以尝试执行`fac(5000)`，看看是不是会提示`RecursionError`错误，错误消息为：`maximum recursion depth exceeded in comparison`（超出最大递归深度），其实就是发生了栈溢出。
+
+如果我们使用官方的 Python 解释器（CPython），默认将函数调用的栈结构最大深度设置为`1000`层。如果超出这个深度，就会发生上面说的`RecursionError`。当然，我们可以使用`sys`模块的`setrecursionlimit`函数来改变递归调用的最大深度，但是我们不建议这样做，因为让递归快速收敛才是我们应该做的事情，否则就应该考虑使用循环递推而不是递归。
+
+再举一个之前讲过的生成斐波那契数列的例子，因为斐波那契数列前两个数都是`1`，从第三个数开始，每个数是前两个数相加的和，可以记为`f(n) = f(n - 1) + f(n - 2)`，很显然这又是一个递归的定义，所以我们可以用下面的递归调用函数来计算第`n`个斐波那契数。
+
+```python
+def fib1(n):
+    if n in (1, 2):
+        return 1
+    return fib1(n - 1) + fib1(n - 2)
+
+
+for i in range(1, 21):
+    print(fib1(i))
+```
+
+需要提醒大家，上面计算斐波那契数的代码虽然看起来非常简单明了，但执行性能是比较糟糕的。大家可以试一试，把上面代码`for`循环中`range`函数的第二个参数修改为`51`，即输出前50个斐波那契数，看看需要多长时间，也欢迎大家在评论区留下你的代码执行时间。至于为什么这么慢，大家可以自己思考一下原因。很显然，直接使用循环递推的方式获得斐波那契数列是更好的选择，代码如下所示。
+
+```python
+def fib2(n):
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return a
+```
+
+除此以外，我们还可以使用 Python 标准库中`functools`模块的`lru_cache`函数来优化上面的递归代码。`lru_cache`函数是一个装饰器函数，我们将其置于上面的函数`fib1`之上，它可以缓存该函数的执行结果从而避免在递归调用的过程中产生大量的重复运算，这样代码的执行性能就有“飞一般”的提升。大家可以尝试输出前50个斐波那契数，看看加上装饰器以后代码需要执行多长时间，评论区见！
+
+```python
+from functools import lru_cache
+
+
+@lru_cache()
+def fib1(n):
+    if n in (1, 2):
+        return 1
+    return fib1(n - 1) + fib1(n - 2)
+
+
+for i in range(1, 51):
+    print(i, fib1(i))
+```
+
+> **提示**：`lru_cache`函数是一个带参数的装饰器，所以上面第4行代码使用装饰器语法糖时，`lru_cache`后面要跟上圆括号。`lru_cache`函数有一个非常重要的参数叫`maxsize`，它可以用来定义缓存空间的大小，默认值是128。
+
+在 Python 中，装饰器语法糖是否需要加括号取决于**装饰器的实现方式**：是否需要接收额外参数。
+
+核心区别：装饰器是否需要参数
+
+**1. 无参数装饰器（不加括号）**
+
+- **本质**：装饰器是一个**单参数函数**，直接接收被装饰的函数。
+- **语法**：`@decorator` 等价于 `func = decorator(func)`。
+
+```python
+def timer(func):  # 接收被装饰的函数
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        print(f"耗时: {time.time() - start}秒")
+        return result
+    return wrapper
+
+@timer  # 等价于：add = timer(add)
+def add(a, b):
+    return a + b
+```
+
+**2. 带参数装饰器（加括号）**
+
+- 本质：装饰器是一个返回真正装饰器的函数（即 “装饰器工厂”）。
+  - 外层函数接收装饰器参数（如 `n`），返回内层函数。
+  - 内层函数接收被装饰的函数（如 `func`），返回包装函数。
+- **语法**：`@decorator(arg)` 等价于 `func = decorator(arg)(func)`。
+
+```python
+def repeat(n):  # 外层：接收装饰器参数
+    def decorator(func):  # 内层：接收被装饰的函数
+        def wrapper(*args, **kwargs):
+            for _ in range(n):
+                result = func(*args, **kwargs)
+            return result
+        return wrapper
+    return decorator
+
+@repeat(3)  # 等价于：greet = repeat(3)(greet)
+def greet():
+    print("Hello!")
+```
+
+**如何实现既支持参数又支持无参数的装饰器？**
+
+通过**参数默认值**和**判断参数类型**实现：
+
+```python
+def flexible_decorator(func=None, *, n=1):  # 注意：必须使用关键字参数
+    def decorator(f):
+        def wrapper(*args, **kwargs):
+            for _ in range(n):
+                result = f(*args, **kwargs)
+            return result
+        return wrapper
+    
+    if func is None:
+        return decorator  # 带参数调用，如 @flexible_decorator(n=3)
+    else:
+        return decorator(func)  # 无参数调用，如 @flexible_decorator
+
+@flexible_decorator  # 无参数
+def f1():
+    pass
+
+@flexible_decorator(n=3)  # 带参数
+def f2():
+    pass
+```
+
+| **场景**               | **装饰器结构**                         | **语法糖写法**                    | **等价展开**                  |
+| ---------------------- | -------------------------------------- | --------------------------------- | ----------------------------- |
+| 无参数装饰器           | 单函数（接收被装饰函数）               | `@decorator`                      | `func = decorator(func)`      |
+| 带参数装饰器           | 函数嵌套（外层接收参数，内层接收函数） | `@decorator(arg)`                 | `func = decorator(arg)(func)` |
+| 灵活装饰器（可选参数） | 通过参数判断实现两种调用方式           | `@decorator` 或 `@decorator(arg)` | 需特殊实现逻辑                |
+
+- 若装饰器本身直接接收函数（如 `timer(func)`），则不加括号。
+- 若装饰器需要先接收其他参数（如 `repeat(n)`），则必须加括号。
+
+## 17.面向对象编程入门

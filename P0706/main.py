@@ -72,3 +72,66 @@ for i in range(5):
     generate_code(5)
     print()
 '''
+
+
+'''
+def prime(n):
+    if n <2:
+        return False
+    for i in range(2,int(n**0.5)+1):
+        if n % i == 0:
+            return False
+    return True
+'''
+
+
+'''
+def greatest_common_divisor(a: int, b: int):
+    if a < b:
+        while b % a != 0:
+            a, b = b % a, a
+        return a
+    else:
+        while a % b != 0:
+            a, b = b, a % b
+        return b
+
+def least_common_multiple(a: int, b: int):
+    return a * b // greatest_common_divisor(a, b)
+
+a=greatest_common_divisor(48, 18)
+print(a)
+
+b=least_common_multiple(48, 18)
+print(b)
+'''
+
+
+'''
+def sample_mean(data):
+    return sum(data)/len(data)
+
+def median(data):
+    data.sort()
+    if len(data) % 2 == 0:
+        return (data[len(data)//2] + data[len(data)//2 - 1])/2
+    else:
+        return data[len(data)//2]
+
+def ptp(data):
+    return max(data) - min(data)
+
+def sample_variance(data):
+    return sum((x - sample_mean(data))**2 for x in data)/(len(data)-1)
+
+def sample_standard_deviation(data):
+    return pow(sample_variance(data),0.5)
+
+def coefficient_of_sample_variation(data):
+    return sample_standard_deviation(data)/sample_mean(data)
+'''
+
+
+old_strings = ['in', 'apple', 'zoo', 'waxberry', 'pear']
+old_strings.sort(key=len)
+print(old_strings)  # ['in', 'zoo', 'pear', 'apple', 'waxberry']
