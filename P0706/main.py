@@ -139,6 +139,7 @@ print(old_strings)  # ['in', 'zoo', 'pear', 'apple', 'waxberry']
 '''
 
 
+'''
 from enum import Enum
 
 
@@ -219,3 +220,85 @@ for player in players:
     player.arrange()
     print(f'{player.name}: ', end='')
     print(player.cards)
+'''
+
+
+'''
+file = open('致橡树.txt', 'r', encoding='utf-8')
+for line in file:
+    print(line, end='')
+file.close()
+
+file = open('致橡树.txt', 'r', encoding='utf-8')
+lines = file.readlines()
+for line in lines:
+    print(line, end='')
+file.close()
+'''
+
+
+'''
+file = open('致橡树.txt', 'a', encoding='utf-8')
+file.write('\n标题：《致橡树》')
+file.write('\n作者：舒婷')
+file.write('\n时间：1977年3月')
+file.close()
+'''
+
+
+'''
+file = None
+try:
+    file = open('致橡树.txt', 'r', encoding='utf-8')
+    print(file.read())
+except FileNotFoundError:
+    print('无法打开指定的文件!')
+except LookupError:
+    print('指定了未知的编码!')
+except UnicodeDecodeError:
+    print('读取文件时解码错误!')
+finally:
+    if file:
+        file.close()
+'''
+
+
+'''
+class InputError(ValueError):
+    """自定义异常类型"""
+    pass
+
+
+def fac(num):
+    """求阶乘"""
+    if num < 0:
+        raise InputError('只能计算非负整数的阶乘')
+    if num in (0, 1):
+        return 1
+    return num * fac(num - 1)
+
+flag = True
+while flag:
+    num = int(input('n = '))
+    try:
+        print(f'{num}! = {fac(num)}')
+        flag = False
+    except InputError as err:
+        print(err)
+'''
+
+
+'''
+try:
+    with open('致橡树.txt', 'r', encoding='utf-8') as file:
+        print(file.read())
+except FileNotFoundError:
+    print('无法打开指定的文件!')
+except LookupError:
+    print('指定了未知的编码!')
+except UnicodeDecodeError:
+    print('读取文件时解码错误!')
+'''
+
+
+
