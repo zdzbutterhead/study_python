@@ -3608,6 +3608,477 @@ if resp.status_code == 200:
 
 Python中实现序列化和反序列化除了使用`json`模块之外，还可以使用`pickle`和`shelve`模块，但是这两个模块是使用特有的序列化协议来序列化数据，因此序列化后的数据只能被Python识别，关于这两个模块的相关知识，有兴趣的读者可以自己查找网络上的资料。处理JSON格式的数据很显然是程序员必须掌握的一项技能，因为不管是访问网络API接口还是提供网络API接口给他人使用，都需要具备处理JSON格式数据的相关知识。
 
+## 22.Python读写CSV文件
+
+### CSV文件介绍
+
+CSV（Comma Separated Values）全称逗号分隔值文件是一种简单、通用的文件格式，被广泛的应用于应用程序（数据库、电子表格等）数据的导入和导出以及异构系统之间的数据交换。因为CSV是纯文本文件，不管是什么操作系统和编程语言都是可以处理纯文本的，而且很多编程语言中都提供了对读写CSV文件的支持，因此CSV格式在数据处理和数据科学中被广泛应用。
+
+CSV文件有以下特点：
+
+1. 纯文本，使用某种字符集（如[ASCII](https://zh.wikipedia.org/wiki/ASCII)、[Unicode](https://zh.wikipedia.org/wiki/Unicode)、[GB2312](https://zh.wikipedia.org/wiki/GB2312)）等）；
+2. 由一条条的记录组成（典型的是每行一条记录）；
+3. 每条记录被分隔符（如逗号、分号、制表符等）分隔为字段（列）；
+4. 每条记录都有同样的字段序列。
+
+CSV文件可以使用文本编辑器或类似于Excel电子表格这类工具打开和编辑，当使用Excel这类电子表格打开CSV文件时，你甚至感觉不到CSV和Excel文件的区别。很多数据库系统都支持将数据导出到CSV文件中，当然也支持从CSV文件中读入数据保存到数据库中，这些内容并不是现在要讨论的重点。
+
+### 将数据写入CSV文件
+
+现有五个学生三门课程的考试成绩需要保存到一个CSV文件中，要达成这个目标，可以使用Python标准库中的`csv`模块，该模块的`writer`函数会返回一个`csvwriter`对象，通过该对象的`writerow`或`writerows`方法就可以将数据写入到CSV文件中，具体的代码如下所示。
+
+```python
+import csv
+import random
+
+with open('scores.csv', 'w') as file:
+    writer = csv.writer(file)
+    writer.writerow(['姓名', '语文', '数学', '英语'])
+    names = ['关羽', '张飞', '赵云', '马超', '黄忠']
+    for name in names:
+        scores = [random.randrange(50, 101) for _ in range(3)]
+        scores.insert(0, name)
+        writer.writerow(scores)
+        
+'''        
+生成的CSV文件的内容。
+姓名,语文,数学,英语
+关羽,98,86,61
+张飞,86,58,80
+赵云,95,73,70
+马超,83,97,55
+黄忠,61,54,87
+'''
+```
+
+需要说明的是上面的`writer`函数，除了传入要写入数据的文件对象外，还可以`dialect`参数，它表示CSV文件的方言，默认值是`excel`。除此之外，还可以通过`delimiter`、`quotechar`、`quoting`参数来指定分隔符（默认是逗号）、包围值的字符（默认是双引号）以及包围的方式。其中，包围值的字符主要用于当字段中有特殊符号时，通过添加包围值的字符可以避免二义性。大家可以尝试将上面第5行代码修改为下面的代码，然后查看生成的CSV文件。
+
+```python
+writer = csv.writer(file, delimiter='|', quoting=csv.QUOTE_ALL)
+
+'''
+生成的CSV文件的内容。
+"姓名"|"语文"|"数学"|"英语"
+"关羽"|"88"|"64"|"65"
+"张飞"|"76"|"93"|"79"
+"赵云"|"78"|"55"|"76"
+"马超"|"72"|"77"|"68"
+"黄忠"|"70"|"72"|"51"
+'''
+```
+
+### 从CSV文件读取数据
+
+如果要读取刚才创建的CSV文件，可以使用下面的代码，通过`csv`模块的`reader`函数可以创建出`csvreader`对象，该对象是一个迭代器，可以通过`next`函数或`for-in`循环读取到文件中的数据。
+
+```python
+import csv
+
+with open('scores.csv', 'r') as file:
+    reader = csv.reader(file, delimiter='|')
+    for data_list in reader:
+        print(reader.line_num, end='\t')
+        for elem in data_list:
+            print(elem, end='\t')
+        print()
+```
+
+上面的代码对`csvreader`对象做`for`循环时，每次会取出一个列表对象，该列表对象包含了一行中所有的字段。
+
+将来如果大家使用Python做数据分析，很有可能会用到名为`pandas`的三方库，它是Python数据分析的神器之一。`pandas`中封装了名为`read_csv`和`to_csv`的函数用来读写CSV文件，其中`read_CSV`会将读取到的数据变成一个`DataFrame`对象，而`DataFrame`就是`pandas`库中最重要的类型，它封装了一系列用于数据处理的方法（清洗、转换、聚合等）；而`to_csv`会将`DataFrame`对象中的数据写入CSV文件，完成数据的持久化。`read_csv`函数和`to_csv`函数远远比原生的`csvreader`和`csvwriter`强大。
+
+## 23.Python读写Excel文件
+
+### Excel简介
+
+Excel 是 Microsoft（微软）为使用 Windows 和 macOS 操作系统开发的一款电子表格软件。Excel 凭借其直观的界面、出色的计算功能和图表工具，再加上成功的市场营销，一直以来都是最为流行的个人计算机数据处理软件。当然，Excel 也有很多竞品，例如 Google Sheets、LibreOffice Calc、Numbers 等，这些竞品基本上也能够兼容 Excel，至少能够读写较新版本的 Excel 文件，当然这些不是我们讨论的重点。掌握用 Python 程序操作 Excel 文件，可以让日常办公自动化的工作更加轻松愉快，而且在很多商业项目中，导入导出 Excel 文件都是特别常见的功能。
+
+Python 操作 Excel 需要三方库的支持，如果要兼容 Excel 2007 以前的版本，也就是`xls`格式的 Excel 文件，可以使用三方库`xlrd`和`xlwt`，前者用于读 Excel 文件，后者用于写 Excel 文件。如果使用较新版本的 Excel，即`xlsx`格式的 Excel 文件，可以使用`openpyxl`库，当然这个库不仅仅可以操作Excel，还可以操作其他基于 Office Open XML 的电子表格文件。
+
+本章我们先讲解基于`xlwt`和`xlrd`操作 Excel 文件，大家可以先使用下面的命令安装这两个三方库以及配合使用的工具模块`xlutils`。
+
+```python
+pip install xlwt xlrd xlutils
+```
+
+XLS 和 XLSX 都是 Microsoft Excel 电子表格应用程序中的文件格式，XLS 是 Excel 早期版本使用的文件格式，而 XLSX 则是 Excel 2007 及以后版本中主要使用的文件格式。它们的区别主要如下：
+
+- **文件结构**：XLS 文件是以二进制格式存储的，数据都以二进制代码的形式存储，不易被其他程序识别和处理。XLSX 文件则是基于开放文档标准（Open XML）的 XML 文件格式，数据以分层结构存储，可被其他软件解读和编辑。
+- **文件大小**：由于 XLS 文件以二进制格式存储，文件体积相对较大。XLSX 文件采用了更高效的压缩算法，在相同数据量的情况下，文件大小通常比 XLS 格式小得多。
+- **兼容性与互操作性**：XLS 格式的文件在不同电子表格应用程序之间的互操作性较差，因为该格式是专有的，其他软件可能无法正确读取其中的数据。XLSX 格式则相对更易于在不同软件之间共享和传输，因为它是基于开放文档标准的。
+- **功能支持**：XLSX 格式提供了更多的功能和可扩展性。与 XLS 文件格式相比，XLSX 支持更多的行和列数，能够在一个工作表中存储更多的数据。此外，XLSX 还支持更多的数据类型、图表类型和外部链接，提供了更丰富的数据处理和展示功能。
+
+### 读Excel文件
+
+例如在当前文件夹下有一个名为“阿里巴巴2020年股票数据.xls”的 Excel 文件，如果想读取并显示该文件的内容，可以通过如下所示的代码来完成。
+
+```python
+import xlrd
+
+# 使用xlrd模块的open_workbook函数打开指定Excel文件并获得Book对象（工作簿）
+wb = xlrd.open_workbook('阿里巴巴2020年股票数据.xls')
+# 通过Book对象的sheet_names方法可以获取所有表单名称
+sheetnames = wb.sheet_names()
+print(sheetnames)
+# 通过指定的表单名称获取Sheet对象（工作表）
+sheet = wb.sheet_by_name(sheetnames[0])
+# 通过Sheet对象的nrows和ncols属性获取表单的行数和列数
+print(sheet.nrows, sheet.ncols)
+for row in range(sheet.nrows):
+    for col in range(sheet.ncols):
+        # 通过Sheet对象的cell方法获取指定Cell对象（单元格）
+        # 通过Cell对象的value属性获取单元格中的值
+        value = sheet.cell(row, col).value
+        # 对除首行外的其他行进行数据格式化处理
+        if row > 0:
+            # 第1列的xldate类型先转成元组再格式化为“年月日”的格式
+            if col == 0:
+                # xldate_as_tuple函数用于将 Excel 日期数值转换为 Python 元组,返回值：包含 6 个元素的元组 (year, month, day, hour, minute, second)第二个参数只有0和1两个取值
+                # 其中0代表以1900-01-01为基准的日期，1代表以1904-01-01为基准的日期
+                value = xlrd.xldate_as_tuple(value, 0)
+                value = f'{value[0]}年{value[1]:>02d}月{value[2]:>02d}日'
+            # 其他列的number类型处理成小数点后保留两位有效数字的浮点数
+            else:
+                value = f'{value:.2f}'
+        print(value, end='\t')
+    print()
+# 获取最后一个单元格的数据类型
+# 0 - 空值，1 - 字符串，2 - 数字，3 - 日期，4 - 布尔，5 - 错误
+last_cell_type = sheet.cell_type(sheet.nrows - 1, sheet.ncols - 1)
+print(last_cell_type)
+# 获取第一行的值（列表）
+print(sheet.row_values(0))
+# 获取指定行指定列范围的数据（列表）
+# 第一个参数代表行索引，第二个和第三个参数代表列的开始（含）和结束（不含）索引
+print(sheet.row_slice(3, 0, 5))
+```
+
+> **提示**：上面代码中使用的Excel文件“阿里巴巴2020年股票数据.xls”可以通过后面的百度云盘地址进行获取。链接:https://pan.baidu.com/s/1rQujl5RQn9R7PadB2Z5g_g 提取码:e7b4。
+
+相信通过上面的代码，大家已经了解到了如何读取一个 Excel 文件，如果想知道更多关于`xlrd`模块的知识，可以阅读它的[官方文档](https://xlrd.readthedocs.io/en/latest/)。
+
+### 写Excel文件
+
+写入 Excel 文件可以通过`xlwt` 模块的`Workbook`类创建工作簿对象，通过工作簿对象的`add_sheet`方法可以添加工作表，通过工作表对象的`write`方法可以向指定单元格中写入数据，最后通过工作簿对象的`save`方法将工作簿写入到指定的文件或内存中。下面的代码实现了将5 个学生 3 门课程的考试成绩写入 Excel 文件的操作。
+
+```python
+import random
+
+import xlwt
+
+student_names = ['关羽', '张飞', '赵云', '马超', '黄忠']
+scores = [[random.randrange(50, 101) for _ in range(3)] for _ in range(5)]
+# 创建工作簿对象（Workbook）
+wb = xlwt.Workbook()
+# 创建工作表对象（Worksheet）
+sheet = wb.add_sheet('一年级二班')
+# 添加表头数据
+titles = ('姓名', '语文', '数学', '英语')
+# enumerate 是一个内置函数，用于在遍历可迭代对象（如列表、元组、字符串）时同时获取元素的索引和值。它将可迭代对象转换为一个枚举对象，返回包含索引和元素的元组，从而简化循环时对索引的处理。
+# 0：代表行索引，这里是首行（行索引从 0 起）。
+# index：是列索引，会随着循环递增，从而实现横向写入。
+for index, title in enumerate(titles):
+    sheet.write(0, index, title)
+# 将学生姓名和考试成绩写入单元格
+# 在 Python 中，对二维列表（即列表的列表）调用 len() 函数会返回外层列表的长度，也就是二维列表的行数。
+for row in range(len(scores)):
+    sheet.write(row + 1, 0, student_names[row])
+    for col in range(len(scores[row])):
+        sheet.write(row + 1, col + 1, scores[row][col])
+# 保存Excel工作簿
+wb.save('考试成绩表.xls')
+```
+
+### 调整单元格样式
+
+在写Excel文件时，我们还可以为单元格设置样式，主要包括字体（Font）、对齐方式（Alignment）、边框（Border）和背景（Background）的设置，`xlwt`对这几项设置都封装了对应的类来支持。要设置单元格样式需要首先创建一个`XFStyle`对象，再通过该对象的属性对字体、对齐方式、边框等进行设定，例如在上面的例子中，如果希望将表头单元格的背景色修改为黄色，可以按照如下的方式进行操作。
+
+```python
+header_style = xlwt.XFStyle()
+# 创建一个填充模式对象
+pattern = xlwt.Pattern()
+# 设置为实心填充模式
+pattern.pattern = xlwt.Pattern.SOLID_PATTERN
+# 0 - 黑色、1 - 白色、2 - 红色、3 - 绿色、4 - 蓝色、5 - 黄色、6 - 粉色、7 - 青色
+pattern.pattern_fore_colour = 5
+header_style.pattern = pattern
+titles = ('姓名', '语文', '数学', '英语')
+for index, title in enumerate(titles):
+    sheet.write(0, index, title, header_style)
+```
+
+如果希望为表头设置指定的字体，可以使用`Font`类并添加如下所示的代码。
+
+```python
+font = xlwt.Font()
+# 字体名称
+font.name = '华文楷体'
+# 字体大小（20是基准单位，18表示18px）
+font.height = 20 * 18
+# 是否使用粗体
+font.bold = True
+# 是否使用斜体
+font.italic = False
+# 字体颜色
+font.colour_index = 1
+header_style.font = font
+```
+
+> **注意**：上面代码中指定的字体名（`font.name`）应当是本地系统有的字体，例如在我的电脑上有名为“华文楷体”的字体。
+
+如果希望表头垂直居中对齐，可以使用下面的代码进行设置。
+
+```python
+align = xlwt.Alignment()
+# 垂直方向的对齐方式
+align.vert = xlwt.Alignment.VERT_CENTER
+# 水平方向的对齐方式
+align.horz = xlwt.Alignment.HORZ_CENTER
+header_style.alignment = align
+```
+
+如果希望给表头加上黄色的虚线边框，可以使用下面的代码来设置。
+
+```python
+borders = xlwt.Borders()
+props = (
+    ('top', 'top_colour'), ('right', 'right_colour'),
+    ('bottom', 'bottom_colour'), ('left', 'left_colour')
+)
+# 通过循环对四个方向的边框样式及颜色进行设定
+for position, color in props:
+    # 使用setattr内置函数动态给对象指定的属性赋值
+    # 设置边框线型为虚线
+    setattr(borders, position, xlwt.Borders.DASHED)
+    # 设置边框颜色为黄色
+    setattr(borders, color, 5)
+header_style.borders = borders
+```
+
+如果要调整单元格的宽度（列宽）和表头的高度（行高），可以按照下面的代码进行操作。
+
+```python
+# 设置行高为40px
+sheet.row(0).set_style(xlwt.easyxf(f'font:height {20 * 40}'))
+titles = ('姓名', '语文', '数学', '英语')
+for index, title in enumerate(titles):
+    # 设置列宽为200px
+    sheet.col(index).width = 20 * 200
+    # 设置单元格的数据和样式
+    sheet.write(0, index, title, header_style)
+```
+
+### 公式计算
+
+对于前面打开的“阿里巴巴2020年股票数据.xls”文件，如果要统计全年收盘价（Close字段）的平均值以及全年交易量（Volume字段）的总和，可以使用Excel的公式计算即可。我们可以先使用`xlrd`读取Excel文件夹，然后通过`xlutils`三方库提供的`copy`函数将读取到的Excel文件转成`Workbook`对象进行写操作，在调用`write`方法时，可以将一个`Formula`对象写入单元格。
+
+实现公式计算的代码如下所示。
+
+```
+import xlrd
+import xlwt
+from xlutils.copy import copy
+
+# 打开文件用于读取
+wb_for_read = xlrd.open_workbook('阿里巴巴2020年股票数据.xls')
+sheet1 = wb_for_read.sheet_by_index(0)
+nrows, ncols = sheet1.nrows, sheet1.ncols  # 获取行列数
+
+# 复制工作簿用于写入
+wb_for_write = copy(wb_for_read)
+sheet2 = wb_for_write.get_sheet(0)
+
+# 在最后一行下方添加公式
+sheet2.write(nrows, 4, xlwt.Formula(f'average(E2:E{nrows})'))  # E列添加平均值
+sheet2.write(nrows, 5, xlwt.Formula(f'sum(F2:F{nrows})'))      # F列添加总和
+
+# 保存为新文件
+wb_for_write.save('阿里巴巴2020年股票数据汇总.xls')
+```
+
+掌握了 Python 程序操作 Excel 的方法，可以解决日常办公中很多繁琐的处理 Excel 电子表格工作，最常见就是将多个数据格式相同的 Excel 文件合并到一个文件以及从多个 Excel 文件或表单中提取指定的数据。当然，如果要对表格数据进行处理，使用 Python 数据分析神器之一的 pandas 库可能更为方便。
+
+讲解基于另一个三方库`openpyxl`如何进行 Excel 文件操作，首先需要先安装它。
+
+```python
+pip install openpyxl
+```
+
+`openpyxl`的优点在于，当我们打开一个 Excel 文件后，既可以对它进行读操作，又可以对它进行写操作，而且在操作的便捷性上是优于`xlwt`和`xlrd`的。此外，如果要进行样式编辑和公式计算，使用`openpyxl`也远比上一个章节我们讲解的方式更为简单，而且`openpyxl`还支持数据透视和插入图表等操作，功能非常强大。有一点需要再次强调，`openpyxl`并不支持操作 Office 2007 以前版本的 Excel 文件。
+
+### 读取Excel文件
+
+例如在当前文件夹下有一个名为“阿里巴巴2020年股票数据.xlsx”的 Excel 文件，如果想读取并显示该文件的内容，可以通过如下所示的代码来完成。
+
+```python
+import datetime
+
+import openpyxl
+
+# 加载一个工作簿 ---> Workbook
+wb = openpyxl.load_workbook('阿里巴巴2020年股票数据.xlsx')
+# 获取工作表的名字
+print(wb.sheetnames)
+# 获取工作表 ---> Worksheet
+sheet = wb.worksheets[0]
+# 获得单元格的范围
+print(sheet.dimensions)
+# 获得行数和列数
+print(sheet.max_row, sheet.max_column)
+
+# 获取指定单元格的值
+print(sheet.cell(3, 3).value)
+print(sheet['C3'].value)
+print(sheet['G255'].value)
+
+# 获取多个单元格（嵌套元组）
+print(sheet['A2:C5'])
+
+# 读取所有单元格的数据
+for row_ch in range(2, sheet.max_row + 1):
+    for col_ch in 'ABCDEFG':
+        value = sheet[f'{col_ch}{row_ch}'].value
+        if type(value) == datetime.datetime:
+            print(value.strftime('%Y年%m月%d日'), end='\t')
+        elif type(value) == int:
+            print(f'{value:<10d}', end='\t')
+        elif type(value) == float:
+            print(f'{value:.4f}', end='\t')
+        else:
+            print(value, end='\t')
+    print()
+```
+
+需要提醒大家一点，`openpyxl`获取指定的单元格有两种方式，一种是通过`cell`方法，需要注意，该方法的行索引和列索引都是从`1`开始的，这是为了照顾用惯了 Excel 的人的习惯；另一种是通过索引运算，通过指定单元格的坐标，例如`C3`、`G255`，也可以取得对应的单元格，再通过单元格对象的`value`属性，就可以获取到单元格的值。通过上面的代码，相信大家还注意到了，可以通过类似`sheet['A2:C5']`或`sheet['A2':'C5']`这样的切片操作获取多个单元格，该操作将返回嵌套的元组，相当于获取到了多行多列。
+
+### 写Excel文件
+
+下面我们使用`openpyxl`来进行写 Excel 操作。
+
+```python
+import random
+
+import openpyxl
+
+# 第一步：创建工作簿（Workbook）
+wb = openpyxl.Workbook()
+
+# 第二步：添加工作表（Worksheet）
+sheet = wb.active
+sheet.title = '期末成绩'
+
+titles = ('姓名', '语文', '数学', '英语')
+for col_index, title in enumerate(titles):
+    sheet.cell(1, col_index + 1, title)
+
+names = ('关羽', '张飞', '赵云', '马超', '黄忠')
+for row_index, name in enumerate(names):
+    sheet.cell(row_index + 2, 1, name)
+    for col_index in range(2, 5):
+        sheet.cell(row_index + 2, col_index, random.randrange(50, 101))
+
+# 第四步：保存工作簿
+wb.save('考试成绩表.xlsx')
+```
+
+### 调整样式和公式计算
+
+在使用`openpyxl`操作 Excel 时，如果要调整单元格的样式，可以直接通过单元格对象（`Cell`对象）的属性进行操作。单元格对象的属性包括字体（`font`）、对齐（`alignment`）、边框（`border`）等，具体的可以参考`openpyxl`的[官方文档](https://openpyxl.readthedocs.io/en/stable/index.html)。在使用`openpyxl`时，如果需要做公式计算，可以完全按照 Excel 中的操作方式来进行，具体的代码如下所示。
+
+```python
+import openpyxl
+from openpyxl.styles import Font, Alignment, Border, Side
+
+# 对齐方式
+alignment = Alignment(horizontal='center', vertical='center')
+# 边框线条
+side = Side(color='ff7f50', style='mediumDashed')
+
+wb = openpyxl.load_workbook('考试成绩表.xlsx')
+sheet = wb.worksheets[0]
+
+# 调整行高和列宽
+sheet.row_dimensions[1].height = 30
+sheet.column_dimensions['E'].width = 120
+
+sheet['E1'] = '平均分'
+# 设置字体
+sheet.cell(1, 5).font = Font(size=18, bold=True, color='ff1493', name='华文楷体')
+# 设置对齐方式
+sheet.cell(1, 5).alignment = alignment
+# 设置单元格边框
+sheet.cell(1, 5).border = Border(left=side, top=side, right=side, bottom=side)
+for i in range(2, 7):
+    # 公式计算每个学生的平均分
+    sheet[f'E{i}'] = f'=average(B{i}:D{i})'
+    sheet.cell(i, 5).font = Font(size=12, color='4169e1', italic=True)
+    sheet.cell(i, 5).alignment = alignment
+
+wb.save('考试成绩表.xlsx')
+```
+
+### 生成统计图表
+
+通过`openpyxl`库，可以直接向 Excel 中插入统计图表，具体的做法跟在 Excel 中插入图表大体一致。我们可以创建指定类型的图表对象，然后通过该对象的属性对图表进行设置。当然，最为重要的是为图表绑定数据，即横轴代表什么，纵轴代表什么，具体的数值是多少。最后，可以将图表对象添加到表单中，具体的代码如下所示。
+
+```python
+from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference
+
+wb = Workbook(write_only=True)
+sheet = wb.create_sheet()
+
+rows = [
+    ('类别', '销售A组', '销售B组'),
+    ('手机', 40, 30),
+    ('平板', 50, 60),
+    ('笔记本', 80, 70),
+    ('外围设备', 20, 10),
+]
+
+# 向表单中添加行
+for row in rows:
+    sheet.append(row)
+
+# 创建图表对象
+chart = BarChart()
+chart.type = 'col'
+chart.style = 10
+# 设置图表的标题
+chart.title = '销售统计图'
+# 设置图表纵轴的标题
+chart.y_axis.title = '销量'
+# 设置图表横轴的标题
+chart.x_axis.title = '商品类别'
+# 设置数据的范围
+data = Reference(sheet, min_col=2, min_row=1, max_row=5, max_col=3)
+# 设置分类的范围
+cats = Reference(sheet, min_col=1, min_row=2, max_row=5)
+# 给图表添加数据
+chart.add_data(data, titles_from_data=True)
+# 给图表设置分类
+chart.set_categories(cats)
+chart.shape = 4
+# 将图表添加到表单指定的单元格中
+sheet.add_chart(chart, 'A10')
+
+wb.save('demo.xlsx')
+```
+
+运行上面的代码，打开生成的 Excel 文件，效果如下图所示。
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210819235009.png)
+
+
+
+
+
+
+
+
+
+
+
 
 
 

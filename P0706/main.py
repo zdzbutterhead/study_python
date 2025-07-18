@@ -335,3 +335,288 @@ if response.status_code == 200:
         print(news['url'])
         print('-' * 60)
 '''
+
+
+'''
+import csv
+import random
+
+with open('scores.csv', 'w') as file:
+    writer = csv.writer(file, delimiter='|', quoting=csv.QUOTE_ALL)
+    writer.writerow(['姓名', '语文', '数学', '英语'])
+    names = ['关羽', '张飞', '赵云', '马超', '黄忠']
+    for name in names:
+        scores = [random.randrange(50, 101) for _ in range(3)]
+        scores.insert(0, name)
+        writer.writerow(scores)
+'''
+
+
+'''
+import csv
+
+with open('scores.csv', 'r') as file:
+    reader = csv.reader(file, delimiter='|')
+    for data_list in reader:
+        print(reader.line_num, end='\t')
+        for elem in data_list:
+            print(elem, end='\t')
+        print()
+'''
+
+
+'''
+import xlrd
+
+# 使用xlrd模块的open_workbook函数打开指定Excel文件并获得Book对象（工作簿）
+wb = xlrd.open_workbook('阿里巴巴2020年股票数据.xls')
+# 通过Book对象的sheet_names方法可以获取所有表单名称
+sheetnames = wb.sheet_names()
+print(sheetnames)
+# 通过指定的表单名称获取Sheet对象（工作表）
+sheet = wb.sheet_by_name(sheetnames[0])
+# 通过Sheet对象的nrows和ncols属性获取表单的行数和列数
+print(sheet.nrows, sheet.ncols)
+for row in range(sheet.nrows):
+    for col in range(sheet.ncols):
+        # 通过Sheet对象的cell方法获取指定Cell对象（单元格）
+        # 通过Cell对象的value属性获取单元格中的值
+        value = sheet.cell(row, col).value
+        # 对除首行外的其他行进行数据格式化处理
+        if row > 0:
+            # 第1列的xldate类型先转成元组再格式化为“年月日”的格式
+            if col == 0:
+                # xldate_as_tuple函数的第二个参数只有0和1两个取值
+                # 其中0代表以1900-01-01为基准的日期，1代表以1904-01-01为基准的日期
+                value = xlrd.xldate_as_tuple(value, 0)
+                value = f'{value[0]}年{value[1]:>02d}月{value[2]:>02d}日'
+            # 其他列的number类型处理成小数点后保留两位有效数字的浮点数
+            else:
+                value = f'{value:.2f}'
+        print(value, end='\t')
+    print()
+# 获取最后一个单元格的数据类型
+# 0 - 空值，1 - 字符串，2 - 数字，3 - 日期，4 - 布尔，5 - 错误
+last_cell_type = sheet.cell_type(sheet.nrows - 1, sheet.ncols - 1)
+print(last_cell_type)
+# 获取第一行的值（列表）
+print(sheet.row_values(0))
+# 获取指定行指定列范围的数据（列表）
+# 第一个参数代表行索引，第二个和第三个参数代表列的开始（含）和结束（不含）索引
+print(sheet.row_slice(3, 0, 5))
+'''
+
+
+'''
+import random
+
+import xlwt
+
+student_names = ['关羽', '张飞', '赵云', '马超', '黄忠']
+scores = [[random.randrange(50, 101) for _ in range(3)] for _ in range(5)]
+# 创建工作簿对象（Workbook）
+wb = xlwt.Workbook()
+# 创建工作表对象（Worksheet）
+sheet = wb.add_sheet('一年级二班')
+# 添加表头数据
+header_style = xlwt.XFStyle()
+pattern = xlwt.Pattern()
+pattern.pattern = xlwt.Pattern.SOLID_PATTERN
+# 0 - 黑色、1 - 白色、2 - 红色、3 - 绿色、4 - 蓝色、5 - 黄色、6 - 粉色、7 - 青色
+pattern.pattern_fore_colour = 5
+header_style.pattern = pattern
+
+font = xlwt.Font()
+# 字体名称
+font.name = '华文楷体'
+# 字体大小（20是基准单位，18表示18px）
+font.height = 20 * 18
+# 是否使用粗体
+font.bold = True
+# 是否使用斜体
+font.italic = False
+# 字体颜色
+font.colour_index = 1
+header_style.font = font
+
+titles = ('姓名', '语文', '数学', '英语')
+for index, title in enumerate(titles):
+    sheet.write(0, index, title, header_style)
+# 将学生姓名和考试成绩写入单元格
+for row in range(len(scores)):
+    sheet.write(row + 1, 0, student_names[row])
+    for col in range(len(scores[row])):
+        sheet.write(row + 1, col + 1, scores[row][col])
+# 保存Excel工作簿
+wb.save('考试成绩表.xls')
+'''
+
+
+'''
+import xlrd
+import xlwt
+from xlutils.copy import copy
+
+# 打开文件用于读取
+wb_for_read = xlrd.open_workbook('阿里巴巴2020年股票数据.xls')
+sheet1 = wb_for_read.sheet_by_index(0)
+nrows, ncols = sheet1.nrows, sheet1.ncols  # 获取行列数
+
+# 复制工作簿用于写入
+wb_for_write = copy(wb_for_read)
+sheet2 = wb_for_write.get_sheet(0)
+
+# 在最后一行下方添加公式
+sheet2.write(nrows, 4, xlwt.Formula(f'average(E2:E{nrows})'))  # E列添加平均值
+sheet2.write(nrows, 5, xlwt.Formula(f'sum(F2:F{nrows})'))      # F列添加总和
+
+# 保存为新文件
+wb_for_write.save('阿里巴巴2020年股票数据汇总.xls')
+'''
+
+
+'''
+import datetime
+import openpyxl
+
+# 加载一个工作簿 ---> Workbook
+wb = openpyxl.load_workbook('阿里巴巴2020年股票数据.xlsx')
+# 获取工作表的名字
+print(wb.sheetnames)
+# 获取工作表 ---> Worksheet
+sheet = wb.worksheets[0]
+# 获得单元格的范围
+print(sheet.dimensions)
+# 获得行数和列数
+print(sheet.max_row, sheet.max_column)
+
+# 获取指定单元格的值
+print(sheet.cell(3, 3).value)
+print(sheet['C3'].value)
+print(sheet['G255'].value)
+
+# 获取多个单元格（嵌套元组）
+print(sheet['A2:C5'])
+
+# 读取所有单元格的数据
+for row_ch in range(2, sheet.max_row + 1):
+    for col_ch in 'ABCDEFG':
+        value = sheet[f'{col_ch}{row_ch}'].value
+        if type(value) == datetime.datetime:
+            print(value.strftime('%Y年%m月%d日'), end='\t')
+        elif type(value) == int:
+            print(f'{value:<10d}', end='\t')
+        elif type(value) == float:
+            print(f'{value:.4f}', end='\t')
+        else:
+            print(value, end='\t')
+    print()
+'''
+
+
+'''
+import random
+
+import openpyxl
+
+# 第一步：创建工作簿（Workbook）
+wb = openpyxl.Workbook()
+
+# 第二步：添加工作表（Worksheet）
+sheet = wb.active
+sheet.title = '期末成绩'
+
+titles = ('姓名', '语文', '数学', '英语')
+for col_index, title in enumerate(titles):
+    sheet.cell(1, col_index + 1, title)
+
+names = ('关羽', '张飞', '赵云', '马超', '黄忠')
+for row_index, name in enumerate(names):
+    sheet.cell(row_index + 2, 1, name)
+    for col_index in range(2, 5):
+        sheet.cell(row_index + 2, col_index, random.randrange(50, 101))
+
+# 第四步：保存工作簿
+wb.save('考试成绩表.xlsx')
+'''
+
+
+'''
+import openpyxl
+from openpyxl.styles import Font, Alignment, Border, Side
+
+# 对齐方式
+alignment = Alignment(horizontal='center', vertical='center')
+# 边框线条
+side = Side(color='ff7f50', style='mediumDashed')
+
+wb = openpyxl.load_workbook('考试成绩表.xlsx')
+sheet = wb.worksheets[0]
+
+# 调整行高和列宽
+sheet.row_dimensions[1].height = 30
+sheet.column_dimensions['E'].width = 120
+
+sheet['E1'] = '平均分'
+# 设置字体
+sheet.cell(1, 5).font = Font(size=18, bold=True, color='ff1493', name='华文楷体')
+# 设置对齐方式
+sheet.cell(1, 5).alignment = alignment
+# 设置单元格边框
+sheet.cell(1, 5).border = Border(left=side, top=side, right=side, bottom=side)
+for i in range(2, 7):
+    # 公式计算每个学生的平均分
+    sheet[f'E{i}'] = f'=average(B{i}:D{i})'
+    sheet.cell(i, 5).font = Font(size=12, color='4169e1', italic=True)
+    sheet.cell(i, 5).alignment = alignment
+
+wb.save('考试成绩表.xlsx')
+'''
+
+
+'''
+from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference
+
+wb = Workbook(write_only=True)
+sheet = wb.create_sheet()
+
+rows = [
+    ('类别', '销售A组', '销售B组'),
+    ('手机', 40, 30),
+    ('平板', 50, 60),
+    ('笔记本', 80, 70),
+    ('外围设备', 20, 10),
+]
+
+# 向表单中添加行
+for row in rows:
+    sheet.append(row)
+
+# 创建图表对象
+chart = BarChart()
+chart.type = 'col'
+chart.style = 10
+# 设置图表的标题
+chart.title = '销售统计图'
+# 设置图表纵轴的标题
+chart.y_axis.title = '销量'
+# 设置图表横轴的标题
+chart.x_axis.title = '商品类别'
+# 设置数据的范围
+data = Reference(sheet, min_col=2, min_row=1, max_row=5, max_col=3)
+# 设置分类的范围
+cats = Reference(sheet, min_col=1, min_row=2, max_row=5)
+# 给图表添加数据
+chart.add_data(data, titles_from_data=True)
+# 给图表设置分类
+chart.set_categories(cats)
+chart.shape = 4
+# 将图表添加到表单指定的单元格中
+sheet.add_chart(chart, 'A10')
+
+wb.save('demo.xlsx')
+'''
+
+
+
