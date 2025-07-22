@@ -490,6 +490,8 @@ del items[1]
 print(items)  # ['Python', 'C++']
 ```
 
+remove()传入的是要删除的值，而del和pop()传入的是索引值(从0开始)
+
 #### 元素位置和频次
 
 列表的`index`方法可以查找某个元素在列表中的索引位置，如果找不到指定的元素，`index`方法会引发`ValueError`错误；列表的`count`方法可以统计一个元素在列表中出现的次数
@@ -4069,17 +4071,770 @@ wb.save('demo.xlsx')
 
 ![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210819235009.png)
 
+## 24.Python操作Word和PowerPoint文件
+
+在日常工作中，有很多简单重复的劳动其实完全可以交给 Python 程序，比如根据样板文件（模板文件）批量的生成很多个 Word 文件或 PowerPoint 文件。Word 是微软公司开发的文字处理程序，相信大家都不陌生，日常办公中很多正式的文档都是用 Word 进行撰写和编辑的，目前使用的 Word 文件后缀名一般为`.docx`。PowerPoint 是微软公司开发的演示文稿程序，是微软的 Office 系列软件中的一员，被商业人士、教师、学生等群体广泛使用，通常也将其称之为“幻灯片”。在 Python 中，可以使用名为`python-docx` 的三方库来操作 Word，可以使用名为`python-pptx`的三方库来生成 PowerPoint。
+
+### 操作Word文档
+
+我们可以先通过下面的命令来安装`python-docx`三方库。
+
+```python
+pip install python-docx
+```
+
+按照[官方文档](https://python-docx.readthedocs.io/en/latest/)的介绍，我们可以使用如下所示的代码来生成一个简单的 Word 文档。
+
+```python
+from docx import Document
+from docx.shared import Cm, Pt
+
+from docx.document import Document as Doc
+
+# 创建代表Word文档的Doc对象
+document = Document()  # type: Doc
+# 添加大标题，第二个参数是标题级别，范围是 0-9，0级是最高级标题
+document.add_heading('快快乐乐学Python', 0)
+# 添加段落，add_run继续向本段落添加内容，还能设置文本格式（如加粗、斜体、颜色等）
+p = document.add_paragraph('Python是一门非常流行的编程语言，它')
+run = p.add_run('简单')
+run.bold = True
+run.font.size = Pt(18)
+p.add_run('而且')
+run = p.add_run('优雅')
+run.font.size = Pt(18)
+run.underline = True
+p.add_run('。')
+
+# 添加一级标题
+document.add_heading('Heading, level 1', level=1)
+# 添加带样式的段落
+document.add_paragraph('Intense quote', style='Intense Quote')
+# 添加无序列表
+document.add_paragraph(
+    'first item in unordered list', style='List Bullet'
+)
+document.add_paragraph(
+    'second item in ordered list', style='List Bullet'
+)
+# 添加有序列表
+document.add_paragraph(
+    'first item in ordered list', style='List Number'
+)
+document.add_paragraph(
+    'second item in ordered list', style='List Number'
+)
+
+# 添加图片（注意路径和图片必须要存在）
+document.add_picture('resources/guido.jpg', width=Cm(5.2))
+
+# 添加分节符
+document.add_section()
+
+records = (
+    ('骆昊', '男', '1995-5-5'),
+    ('孙美丽', '女', '1992-2-2')
+)
+# 添加表格
+table = document.add_table(rows=1, cols=3)
+table.style = 'Dark List'
+hdr_cells = table.rows[0].cells
+hdr_cells[0].text = '姓名'
+hdr_cells[1].text = '性别'
+hdr_cells[2].text = '出生日期'
+# 为表格添加行
+for name, sex, birthday in records:
+    row_cells = table.add_row().cells
+    row_cells[0].text = name
+    row_cells[1].text = sex
+    row_cells[2].text = birthday
+
+# 添加分页符
+document.add_page_break()
+
+# 保存文档
+document.save('demo.docx')
+```
+
+> **提示**：上面代码第7行中的注释`# type: Doc`是为了在PyCharm中获得代码补全提示，因为如果不清楚对象具体的数据类型，PyCharm 无法在后续代码中给出`Doc`对象的代码补全提示。
+>
+> from docx import Document和from docx.document import Document as Doc并不是 “引入同一个包两次”，而是**对同一个模块中的不同对象进行有针对性的导入**，主要是为了在代码中更清晰地区分 “文档类” 和 “文档实例类型注解”，属于 Python 类型提示（Type Hints）的常用技巧。
+>
+> 1. `from docx import Document`
+>    导入的是 `docx` 模块中用于创建 Word 文档的**类**（`Document` 类），后续可以通过 `document = Document()` 来实例化一个具体的文档对象。
+> 2. `from docx.document import Document as Doc`
+>    导入的是 `docx.document` 模块中定义的 `Document` 类（与上面的类本质上是同一个，但从不同路径导入），并通过 `as Doc` 给它起了一个别名。
+>    这个别名通常用于**类型注解**，明确指定变量的类型
+
+执行上面的代码，打开生成的 Word 文档，效果如下图所示。
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210820002742.png)
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210820002843.png)
+
+对于一个已经存在的 Word 文件，我们可以通过下面的代码去遍历它所有的段落并获取对应的内容。
+
+```python
+from docx import Document
+from docx.document import Document as Doc
+
+doc = Document('resources/离职证明.docx')  # type: Doc
+# enumerate() 函数用于遍历列表时同时获取每个元素的索引（序号） 和元素本身，这里 no 是段落序号（从 0 开始），p 是每个段落的对象（Paragraph 实例）。
+for no, p in enumerate(doc.paragraphs):
+    print(no, p.text)
+```
+
+读取到的内容如下所示。
+
+```
+0 
+1 离 职 证 明
+2 
+3 兹证明 王大锤 ，身份证号码： 100200199512120001 ，于 2018 年 8 月 7 日至 2020 年 6 月 28 日在我单位  开发部 部门担任 Java开发工程师 职务，在职期间无不良表现。因 个人 原因，于 2020 年 6 月 28 日起终止解除劳动合同。现已结清财务相关费用，办理完解除劳动关系相关手续，双方不存在任何劳动争议。
+4 
+5 特此证明！
+6 
+7 
+8 公司名称（盖章）:成都风车车科技有限公司
+9    			2020 年 6 月 28 日
+```
+
+讲到这里，相信很多读者已经想到了，我们可以把上面的离职证明制作成一个模板文件，把姓名、身份证号、入职和离职日期等信息用占位符代替，这样通过对占位符的替换，就可以根据实际需要写入对应的信息，这样就可以批量的生成 Word 文档。
+
+按照上面的思路，我们首先编辑一个离职证明的模板文件，如下图所示。
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210820004223.png)
+
+接下来我们读取该文件，将占位符替换为真实信息，就可以生成一个新的 Word 文档，如下所示。
+
+```python
+from docx import Document
+from docx.document import Document as Doc
+
+# 将真实信息用字典的方式保存在列表中
+employees = [
+    {
+        'name': '骆昊',
+        'id': '100200198011280001',
+        'sdate': '2008年3月1日',
+        'edate': '2012年2月29日',
+        'department': '产品研发',
+        'position': '架构师',
+        'company': '成都华为技术有限公司'
+    },
+    {
+        'name': '王大锤',
+        'id': '510210199012125566',
+        'sdate': '2019年1月1日',
+        'edate': '2021年4月30日',
+        'department': '产品研发',
+        'position': 'Python开发工程师',
+        'company': '成都谷道科技有限公司'
+    },
+    {
+        'name': '李元芳',
+        'id': '2102101995103221599',
+        'sdate': '2020年5月10日',
+        'edate': '2021年3月5日',
+        'department': '产品研发',
+        'position': 'Java开发工程师',
+        'company': '同城企业管理集团有限公司'
+    },
+]
+# 对列表进行循环遍历，批量生成Word文档 
+for emp_dict in employees:
+    # 读取离职证明模板文件
+    doc = Document('resources/离职证明模板.docx')  # type: Doc
+    # 循环遍历所有段落寻找占位符
+    for p in doc.paragraphs:
+        if '{' not in p.text:
+            continue
+        # 不能直接修改段落内容，否则会丢失样式
+        # 所以需要对段落中的元素进行遍历并进行查找替换
+        for run in p.runs:
+            if '{' not in run.text:
+                continue
+            # 将占位符换成实际内容
+            start, end = run.text.find('{'), run.text.find('}')
+            # key：提取括号内的内容（去掉括号），作为字典的键。例如 (name) 会提取出 name。
+			# place_holder：提取包含括号的完整占位符（如 (name)），用于后续替换。
+            key, place_holder = run.text[start + 1:end], run.text[start:end + 1]
+            run.text = run.text.replace(place_holder, emp_dict[key])
+    # 每个人对应保存一个Word文档
+    doc.save(f'{emp_dict["name"]}离职证明.docx')
+```
+
+在 `python-docx` 中，`Run`（文本片段）的划分依据是**格式是否一致**，而不是句子是否以句号结尾。因此，一个句子（即使以句号结尾）可能是一个 `Run`，也可能被拆分成多个 `Run`，完全取决于文本的格式变化。
+
+执行上面的代码，会在当前路径下生成三个 Word 文档，如下图所示。
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210820004825.png)
+
+### 生成PowerPoint
+
+首先我们需要安装名为`python-pptx`的三方库，命令如下所示。
+
+```python
+pip install python-pptx
+```
+
+用 Python 操作 PowerPoint 的内容，因为实际应用场景不算很多，我不打算在这里进行赘述，有兴趣的读者可以自行阅读`python-pptx`的[官方文档](https://python-pptx.readthedocs.io/en/latest/)，下面仅展示一段来自于官方文档的代码。
+
+```python
+from pptx import Presentation
+
+# 创建幻灯片对象
+pres = Presentation()
+
+# 选择母版添加一页
+title_slide_layout = pres.slide_layouts[0]
+slide = pres.slides.add_slide(title_slide_layout)
+# 获取标题栏和副标题栏
+title = slide.shapes.title
+subtitle = slide.placeholders[1]
+# 编辑标题和副标题
+title.text = "Welcome to Python"
+subtitle.text = "Life is short, I use Python"
+
+# 选择母版添加一页
+bullet_slide_layout = pres.slide_layouts[1]
+slide = pres.slides.add_slide(bullet_slide_layout)
+# 获取页面上所有形状
+shapes = slide.shapes
+# 获取标题和主体
+title_shape = shapes.title
+body_shape = shapes.placeholders[1]
+# 编辑标题
+title_shape.text = 'Introduction'
+# 编辑主体内容
+tf = body_shape.text_frame
+tf.text = 'History of Python'
+# 添加一个一级段落
+p = tf.add_paragraph()
+p.text = 'X\'max 1989'
+p.level = 1
+# 添加一个二级段落
+p = tf.add_paragraph()
+p.text = 'Guido began to write interpreter for Python.'
+p.level = 2
+
+# 保存幻灯片
+pres.save('test.pptx')
+```
+
+运行上面的代码，生成的 PowerPoint 文件如下图所示。
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210820010306.png)
+
+## 25.Python操作PDF文件
+
+PDF 是 Portable Document Format 的缩写，这类文件通常使用`.pdf`作为其扩展名。在日常开发工作中，最容易遇到的就是从 PDF 中读取文本内容以及用已有的内容生成PDF文档这两个任务。
+
+### 从PDF中提取文本
+
+在 Python 中，可以使用名为`PyPDF2`的三方库来读取 PDF 文件，可以使用下面的命令来安装它。
+
+```python
+pip install PyPDF2
+```
+
+`PyPDF2`没有办法从 PDF 文档中提取图像、图表或其他媒体，但它可以提取文本，并将其返回为 Python 字符串。
+
+```python
+import PyPDF2
+
+reader = PyPDF2.PdfReader('test.pdf')
+for page in reader.pages:
+    print(page.extract_text())
+```
+
+当然，`PyPDF2`并不是什么样的 PDF 文档都能提取出文字来，这个问题就我所知并没有什么特别好的解决方法，尤其是在提取中文的时候。网上也有很多讲解从 PDF 中提取文字的文章，推荐大家自行阅读[《三大神器助力Python提取pdf文档信息》](https://cloud.tencent.com/developer/article/1395339)一文进行了解。
+
+当然，`PyPDF2`并不是什么样的 PDF 文档都能提取出文字来，这个问题就我所知并没有什么特别好的解决方法，尤其是在提取中文的时候。网上也有很多讲解从 PDF 中提取文字的文章，推荐大家自行阅读[《三大神器助力Python提取pdf文档信息》](https://cloud.tencent.com/developer/article/1395339)一文进行了解。
+
+```pyth
+pip install pdfminer.six
+pdf2text.py test.pdf
+```
+
+### 旋转和叠加页面
+
+上面的代码中通过创建`PdfFileReader`对象的方式来读取 PDF 文档，该对象的`getPage`方法可以获得PDF文档的指定页并得到一个`PageObject`对象，通过`PageObject`对象的`rotateClockwise`和`rotateCounterClockwise`方法可以实现页面的顺时针和逆时针方向旋转，通过`PageObject`对象的`addBlankPage`方法可以添加一个新的空白页，代码如下所示。
+
+```python
+reader = PyPDF2.PdfReader('XGBoost.pdf')
+writer = PyPDF2.PdfWriter()
+
+for no, page in enumerate(reader.pages):
+    if no % 2 == 0:
+        new_page = page.rotate(-90)
+    else:
+        new_page = page.rotate(90)
+    writer.add_page(new_page)
+
+# 将 PDF 写入器（writer）中的内容保存到本地文件
+with open('temp.pdf', 'wb') as file_obj:
+    writer.write(file_obj)
+```
+
+### 加密PDF文件
+
+使用`PyPDF2`中的`PdfFileWrite`对象可以为PDF文档加密，如果需要给一系列的PDF文档设置统一的访问口令，使用Python程序来处理就会非常的方便。
+
+```python
+import PyPDF2
+
+reader = PyPDF2.PdfReader('XGBoost.pdf')
+writer = PyPDF2.PdfWriter()
+
+for page in reader.pages:
+    writer.add_page(page)
+    
+writer.encrypt('foobared')
+
+with open('temp.pdf', 'wb') as file_obj:
+    writer.write(file_obj)
+```
+
+### 批量添加水印
+
+上面提到的`PageObject`对象还有一个名为`mergePage`的方法，可以两个 PDF 页面进行叠加，通过这个操作，我们很容易实现给PDF文件添加水印的功能。例如要给上面的“XGBoost.pdf”文件添加一个水印，我们可以先准备好一个提供水印页面的 PDF 文件，然后将包含水印的`PageObject`读取出来，然后再循环遍历“XGBoost.pdf”文件的每个页，获取到`PageObject`对象，然后通过`mergePage`方法实现水印页和原始页的合并，代码如下所示。
+
+```python
+reader1 = PyPDF2.PdfReader('XGBoost.pdf')
+reader2 = PyPDF2.PdfReader('watermark.pdf')
+writer = PyPDF2.PdfWriter()
+watermark_page = reader2.pages[0]
+
+for page in reader1.pages:
+    page.merge_page(watermark_page)
+    writer.add_page(page)
+
+with open('temp.pdf', 'wb') as file_obj:
+    writer.write(file_obj)
+```
+
+### 创建PDF文件
+
+创建 PDF 文档需要三方库`reportlab`的支持，安装的方法如下所示。
+
+```python
+pip install reportlab
+```
+
+下面通过一个例子为大家展示`reportlab`的用法。
+
+```python
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
+
+pdf_canvas = canvas.Canvas('resources/demo.pdf', pagesize=A4)
+width, height = A4
+
+# 绘图
+image = canvas.ImageReader('resources/guido.jpg')
+# 第2，3个参数为xy坐标，最后两个参数为图片宽和高
+pdf_canvas.drawImage(image, 20, height - 395, 250, 375)
+
+# 显示当前页
+pdf_canvas.showPage()
+
+# 注册字体文件
+pdfmetrics.registerFont(TTFont('Font1', 'resources/fonts/Vera.ttf'))
+pdfmetrics.registerFont(TTFont('Font2', 'resources/fonts/青呱石头体.ttf'))
+
+# 写字
+pdf_canvas.setFont('Font2', 40)
+# 参数分别代表RGB和透明度
+pdf_canvas.setFillColorRGB(0.9, 0.5, 0.3, 1)
+pdf_canvas.drawString(width // 2 - 120, height // 2, '你好，世界！')
+pdf_canvas.setFont('Font1', 40)
+pdf_canvas.setFillColorRGB(0, 1, 0, 0.5)
+pdf_canvas.rotate(18)
+pdf_canvas.drawString(250, 250, 'hello, world!')
+
+# 保存
+pdf_canvas.save()
+```
+
+上面的代码如果不太理解也没有关系，等真正需要用 Python 创建 PDF 文档的时候，再好好研读一下`reportlab`的[官方文档](https://www.reportlab.com/docs/reportlab-userguide.pdf)就可以了。
+
+## 26.Python处理图像
+
+### 入门知识
+
+1. 颜色。如果你有使用颜料画画的经历，那么一定知道混合红、黄、蓝三种颜料可以得到其他的颜色，事实上这三种颜色就是美术中的三原色，它们是不能再分解的基本颜色。在计算机中，我们可以将红、绿、蓝三种色光以不同的比例叠加来组合成其他的颜色，因此这三种颜色就是色光三原色。在计算机系统中，我们通常会将一个颜色表示为一个 RGB 值或 RGBA 值（其中的 A 表示 Alpha 通道，它决定了透过这个图像的像素，也就是透明度）。
+
+   | 名称        | RGB值           | 名称         | RGB值         |
+   | ----------- | --------------- | ------------ | ------------- |
+   | White（白） | (255, 255, 255) | Red（红）    | (255, 0, 0)   |
+   | Green（绿） | (0, 255, 0)     | Blue（蓝）   | (0, 0, 255)   |
+   | Gray（灰）  | (128, 128, 128) | Yellow（黄） | (255, 255, 0) |
+   | Black（黑） | (0, 0, 0)       | Purple（紫） | (128, 0, 128) |
+
+2. 像素。对于一个由数字序列表示的图像来说，最小的单位就是图像上单一颜色的小方格，这些小方块都有一个明确的位置和被分配的色彩数值，而这些一小方格的颜色和位置决定了该图像最终呈现出来的样子，它们是不可分割的单位，我们通常称之为像素（pixel）。每一个图像都包含了一定量的像素，这些像素决定图像在屏幕上所呈现的大小，大家如果爱好拍照或者自拍，对像素这个词就不会陌生。
+
+### 用Pillow处理图像
+
+Pillow 是由从著名的 Python 图像处理库 PIL 发展出来的一个分支，通过 Pillow 可以实现图像压缩和图像处理等各种操作。可以使用下面的命令来安装 Pillow。
+
+```python
+pip install pillow
+```
+
+Pillow 中最为重要的是`Image`类，可以通过`Image`模块的`open`函数来读取图像并获得`Image`类型的对象。
+
+1. 读取和显示图像
+
+   ```python
+   from PIL import Image
+   
+   # 读取图像获得Image对象
+   image = Image.open('guido.jpg')
+   # 通过Image对象的format属性获得图像的格式
+   print(image.format) # JPEG
+   # 通过Image对象的size属性获得图像的尺寸
+   print(image.size)   # (500, 750)
+   # 通过Image对象的mode属性获取图像的模式
+   print(image.mode)   # RGB
+   # 通过Image对象的show方法显示图像
+   image.show()
+   ```
+
+   ![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210803202628.png)
+
+2. 剪裁图像
+
+   ```python
+   # 通过Image对象的crop方法指定剪裁区域剪裁图像，参数列表为左上角的xy坐标，右下角的xy坐标
+   image.crop((80, 20, 310, 360)).show()
+   ```
+
+   ![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210803202701.png)
+
+3. 生成缩略图
+
+   ```python
+   # 通过Image对象的thumbnail方法生成指定尺寸的缩略图
+   image.thumbnail((128, 128))
+   image.show()
+   ```
+
+   ![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210803202722.png)
+
+4. 缩放和粘贴图像
+
+   ```python
+   # 读取骆昊的照片获得Image对象
+   luohao_image = Image.open('luohao.png')
+   # 读取吉多的照片获得Image对象
+   guido_image = Image.open('guido.jpg')
+   # 从吉多的照片上剪裁出吉多的头
+   guido_head = guido_image.crop((80, 20, 310, 360))
+   width, height = guido_head.size
+   # 使用Image对象的resize方法修改图像的尺寸
+   # 使用Image对象的paste方法将吉多的头粘贴到骆昊的照片上
+   luohao_image.paste(guido_head.resize((int(width / 1.5), int(height / 1.5))), (172, 40))
+   luohao_image.show()
+   ```
+
+   ![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210803202749.png)
+
+5. 旋转和翻转
+
+   ```python
+   image = Image.open('guido.jpg')
+   # 使用Image对象的rotate方法实现图像的旋转
+   image.rotate(45).show()
+   # 使用Image对象的transpose方法实现图像翻转
+   # Image.FLIP_LEFT_RIGHT - 水平翻转
+   # Image.FLIP_TOP_BOTTOM - 垂直翻转
+   image.transpose(Image.FLIP_TOP_BOTTOM).show()
+   ```
+
+   ![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210803202829.png)
+
+6. 操作像素
+
+   ```python
+   for x in range(80, 310):
+       for y in range(20, 360):
+           # 通过Image对象的putpixel方法修改图像指定像素点
+           image.putpixel((x, y), (128, 128, 128))
+   image.show()
+   ```
+
+   ![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210803202932.png)
+
+7. 滤镜效果
+
+   ```python
+   from PIL import ImageFilter
+   
+   # 使用Image对象的filter方法对图像进行滤镜处理
+   # ImageFilter模块包含了诸多预设的滤镜也可以自定义滤镜
+   image.filter(ImageFilter.CONTOUR).show()
+   ```
+
+   ![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210803202953.png)
+
+### 使用Pillow绘图
+
+Pillow 中有一个名为`ImageDraw`的模块，该模块的`Draw`函数会返回一个`ImageDraw`对象，通过`ImageDraw`对象的`arc`、`line`、`rectangle`、`ellipse`、`polygon`等方法，可以在图像上绘制出圆弧、线条、矩形、椭圆、多边形等形状，也可以通过该对象的`text`方法在图像上添加文字。
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210803203016.png)
+
+要绘制如上图所示的图像，完整的代码如下所示。
+
+```python
+import random
+
+from PIL import Image, ImageDraw, ImageFont
 
 
+def random_color():
+    """生成随机颜色"""
+    red = random.randint(0, 255)
+    green = random.randint(0, 255)
+    blue = random.randint(0, 255)
+    return red, green, blue
 
 
+width, height = 800, 600
+# 创建一个800*600的图像，背景色为白色
+image = Image.new(mode='RGB', size=(width, height), color=(255, 255, 255))
+# 创建一个ImageDraw对象
+drawer = ImageDraw.Draw(image)
+# 通过指定字体和大小获得ImageFont对象
+font = ImageFont.truetype('Kongxin.ttf', 32)
+# 通过ImageDraw对象的text方法绘制文字
+drawer.text((300, 50), 'Hello, world!', fill=(255, 0, 0), font=font)
+# 通过ImageDraw对象的line方法绘制两条对角直线
+drawer.line((0, 0, width, height), fill=(0, 0, 255), width=2)
+drawer.line((width, 0, 0, height), fill=(0, 0, 255), width=2)
+xy = width // 2 - 60, height // 2 - 60, width // 2 + 60, height // 2 + 60
+# 通过ImageDraw对象的rectangle方法绘制矩形
+drawer.rectangle(xy, outline=(255, 0, 0), width=2)
+# 通过ImageDraw对象的ellipse方法绘制椭圆
+for i in range(4):
+    left, top, right, bottom = 150 + i * 120, 220, 310 + i * 120, 380
+    drawer.ellipse((left, top, right, bottom), outline=random_color(), width=8)
+# 显示图像
+image.show()
+# 保存图像
+image.save('result.png')
+```
+
+> **注意**：上面代码中使用的字体文件需要根据自己准备，可以选择自己喜欢的字体文件并放置在代码目录下。
+
+使用 Python 语言做开发，除了可以用 Pillow 来处理图像外，还可以使用更为强大的 OpenCV 库来完成图形图像的处理，OpenCV（**Open** Source **C**omputer **V**ision Library）是一个跨平台的计算机视觉库，可以用来开发实时图像处理、计算机视觉和模式识别程序。在我们的日常工作中，有很多繁琐乏味的任务其实都可以通过 Python 程序来处理，编程的目的就是让计算机帮助我们解决问题，减少重复乏味的劳动。通过本章节的学习，相信大家已经感受到了使用 Python 程序绘图改图的乐趣，其实 Python 能做的事情还远不止这些，继续你的学习吧。
+
+## 27.Python发送邮件和短信
+
+在前面的课程中，我们已经教会大家如何用 Python 程序自动的生成 Excel、Word、PDF 文档，接下来我们还可以更进一步，就是通过邮件将生成好的文档发送给指定的收件人，然后用短信告知对方我们发出了邮件。这些事情利用 Python 程序也可以轻松愉快的解决。
+
+### 发送电子邮件
+
+在即时通信软件如此发达的今天，电子邮件仍然是互联网上使用最为广泛的应用之一，公司向应聘者发出录用通知、网站向用户发送一个激活账号的链接、银行向客户推广它们的理财产品等几乎都是通过电子邮件来完成的，而这些任务应该都是由程序自动完成的。
+
+我们可以用HTTP（超文本传输协议）来访问网站资源，HTTP 是一个应用级协议，它建立在 TCP（传输控制协议）之上，TCP 为很多应用级协议提供了可靠的数据传输服务。如果要发送电子邮件，需要使用 SMTP（简单邮件传输协议），它也是建立在 TCP 之上的应用级协议，规定了邮件的发送者如何跟邮件服务器进行通信的细节。Python 通过名为`smtplib`的模块将这些操作简化成了`SMTP_SSL`对象，通过该对象的`login`和`send_mail`方法，就能够完成发送邮件的操作。
+
+我们先尝试一下发送一封极为简单的邮件，该邮件不包含附件、图片以及其他超文本内容。发送邮件首先需要接入邮件服务器，我们可以自己架设邮件服务器，这件事情对新手并不友好，但是我们可以选择使用第三方提供的邮件服务。例如，我在<[www.126.com>已经注册了账号，登录成功之后，就可以在设置中开启](http://www.126.xn--com>,,-sd0mtjjwx9ac6uc0dcsgsdur2tz56brqyfnid4fu4bl34ay37d49vcs86bxwdwp2jg2i/) SMTP 服务，这样就相当于获得了邮件服务器，具体的操作如下所示。
+
+![image-20210820190306861](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210820190307.png)
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210820190816.png)
+
+用手机扫码上面的二维码可以通过发送短信的方式来获取授权码，短信发送成功后，点击“我已发送”就可以获得授权码。授权码需要妥善保管，因为一旦泄露就会被其他人冒用你的身份来发送邮件。接下来，我们就可以编写发送邮件的代码了，如下所示。
+
+```python
+import smtplib
+from email.header import Header
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+# 创建邮件主体对象
+email = MIMEMultipart()
+# 设置发件人、收件人和主题
+email['From'] = 'xxxxxxxxx@126.com'
+email['To'] = 'yyyyyy@qq.com;zzzzzz@1000phone.com'
+email['Subject'] = Header('上半年工作情况汇报', 'utf-8')
+# 添加邮件正文内容
+content = """据德国媒体报道，当地时间9日，德国火车司机工会成员进行了投票，
+定于当地时间10日起进行全国性罢工，货运交通方面的罢工已于当地时间10日19时开始。
+此后，从11日凌晨2时到13日凌晨2时，德国全国范围内的客运和铁路基础设施将进行48小时的罢工。"""
+email.attach(MIMEText(content, 'plain', 'utf-8'))
+
+# 创建SMTP_SSL对象（连接邮件服务器）
+smtp_obj = smtplib.SMTP_SSL('smtp.126.com', 465)
+# 通过用户名和授权码进行登录
+smtp_obj.login('xxxxxxxxx@126.com', '邮件服务器的授权码')
+# 发送邮件（发件人、收件人、邮件内容（字符串））
+smtp_obj.sendmail(
+    'xxxxxxxxx@126.com',
+    ['yyyyyy@qq.com', 'zzzzzz@1000phone.com'],
+    email.as_string()
+)
+```
+
+如果要发送带有附件的邮件，只需要将附件的内容处理成 BASE64 编码，那么它就和普通的文本内容几乎没有什么区别。BASE64 是一种基于 64 个可打印字符来表示二进制数据的表示方法，常用于某些需要表示、传输、存储二进制数据的场合，电子邮件就是其中之一。对这种编码方式不理解的同学，推荐阅读[《Base64笔记》](http://www.ruanyifeng.com/blog/2008/06/base64.html)一文。在之前的内容中，我们也提到过，Python 标准库的`base64`模块提供了对 BASE64 编解码的支持。
+
+下面的代码演示了如何发送带附件的邮件。
+
+```python
+import smtplib
+from email.header import Header
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from urllib.parse import quote
+
+# 创建邮件主体对象
+email = MIMEMultipart()
+# 设置发件人、收件人和主题
+email['From'] = 'xxxxxxxxx@126.com'
+email['To'] = 'zzzzzzzz@1000phone.com'
+email['Subject'] = Header('请查收离职证明文件', 'utf-8')
+# 添加邮件正文内容（带HTML标签排版的内容）
+content = """<p>亲爱的前同事：</p>
+<p>你需要的离职证明在附件中，请查收！</p>
+<br>
+<p>祝，好！</p>
+<hr>
+<p>孙美丽 即日</p>"""
+email.attach(MIMEText(content, 'html', 'utf-8'))
+# 读取作为附件的文件
+with open(f'resources/王大锤离职证明.docx', 'rb') as file:
+    attachment = MIMEText(file.read(), 'base64', 'utf-8')
+    # 指定内容类型
+    attachment['content-type'] = 'application/octet-stream'
+    # 将中文文件名处理成百分号编码
+    filename = quote('王大锤离职证明.docx')
+    # 指定如何处置内容
+    attachment['content-disposition'] = f'attachment; filename="{filename}"'
+
+# 创建SMTP_SSL对象（连接邮件服务器）
+smtp_obj = smtplib.SMTP_SSL('smtp.126.com', 465)
+# 通过用户名和授权码进行登录
+smtp_obj.login('xxxxxxxxx@126.com', '邮件服务器的授权码')
+# 发送邮件（发件人、收件人、邮件内容（字符串））
+smtp_obj.sendmail(
+    'xxxxxxxxx@126.com',
+    'zzzzzzzz@1000phone.com',
+    email.as_string()
+)
+```
+
+为了方便大家用 Python 实现邮件发送，我将上面的代码封装成了函数，使用的时候大家只需要调整邮件服务器域名、端口、用户名和授权码就可以了。
+
+```python
+import smtplib
+from email.header import Header
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from urllib.parse import quote
+
+# 邮件服务器域名（自行修改）
+EMAIL_HOST = 'smtp.126.com'
+# 邮件服务端口（通常是465）
+EMAIL_PORT = 465
+# 登录邮件服务器的账号（自行修改）
+EMAIL_USER = 'xxxxxxxxx@126.com'
+# 开通SMTP服务的授权码（自行修改）
+EMAIL_AUTH = '邮件服务器的授权码'
 
 
+def send_email(*, from_user, to_users, subject='', content='', filenames=[]):
+    """发送邮件
+    
+    :param from_user: 发件人
+    :param to_users: 收件人，多个收件人用英文分号进行分隔
+    :param subject: 邮件的主题
+    :param content: 邮件正文内容
+    :param filenames: 附件要发送的文件路径
+    """
+    email = MIMEMultipart()
+    email['From'] = from_user
+    email['To'] = to_users
+    email['Subject'] = subject
+
+    message = MIMEText(content, 'plain', 'utf-8')
+    email.attach(message)
+    for filename in filenames:
+        with open(filename, 'rb') as file:
+            pos = filename.rfind('/')
+            display_filename = filename[pos + 1:] if pos >= 0 else filename
+            display_filename = quote(display_filename)
+            attachment = MIMEText(file.read(), 'base64', 'utf-8')
+            attachment['content-type'] = 'application/octet-stream'
+            attachment['content-disposition'] = f'attachment; filename="{display_filename}"'
+            email.attach(attachment)
+
+    smtp = smtplib.SMTP_SSL(EMAIL_HOST, EMAIL_PORT)
+    smtp.login(EMAIL_USER, EMAIL_AUTH)
+    smtp.sendmail(from_user, to_users.split(';'), email.as_string())
+```
+
+### 发送短信
+
+发送短信也是项目中常见的功能，网站的注册码、验证码、营销信息基本上都是通过短信来发送给用户的。发送短信需要三方平台的支持，下面我们以[螺丝帽平台](https://luosimao.com/)为例，为大家介绍如何用 Python 程序发送短信。注册账号和购买短信服务的细节我们不在这里进行赘述，大家可以咨询平台的客服。
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210820194421.png)
+
+接下来，我们可以通过`requests`库向平台提供的短信网关发起一个 HTTP 请求，通过将接收短信的手机号和短信内容作为参数，就可以发送短信，代码如下所示。
+
+```python
+import random
+
+import requests
 
 
+def send_message_by_luosimao(tel, message):
+    """发送短信（调用螺丝帽短信网关）"""
+    resp = requests.post(
+        url='http://sms-api.luosimao.com/v1/send.json',
+        auth=('api', 'key-注册成功后平台分配的KEY'),
+        data={
+            'mobile': tel,
+            'message': message
+        },
+        timeout=10,
+        verify=False
+    )
+    return resp.json()
 
 
+def gen_mobile_code(length=6):
+    """生成指定长度的手机验证码"""
+    return ''.join(random.choices('0123456789', k=length))
 
+
+def main():
+    code = gen_mobile_code()
+    message = f'您的短信验证码是{code}，打死也不能告诉别人哟！【Python小课】'
+    print(send_message_by_luosimao('13500112233', message))
+
+
+if __name__ == '__main__':
+    main()
+```
+
+上面请求螺丝帽的短信网关`http://sms-api.luosimao.com/v1/send.json`会返回JSON格式的数据，如果返回`{'error': 0, 'msg': 'OK'}`就说明短信已经发送成功了，如果`error`的值不是`0`，可以通过查看官方的[开发文档](https://luosimao.com/docs/api/)了解到底哪个环节出了问题。螺丝帽平台常见的错误类型如下图所示。
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210820195505.png)
+
+目前，大多数短信平台都会要求短信内容必须附上签名，下图是我在螺丝帽平台配置的短信签名“【Python小课】”。有些涉及到敏感内容的短信，还需要提前配置短信模板，有兴趣的读者可以自行研究。一般情况下，平台为了防范短信被盗用，还会要求设置“IP 白名单”，不清楚如何配置的可以咨询平台客服。
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day21-30/res/20210820194653.png)
+
+当然国内的短信平台很多，读者可以根据自己的需要进行选择（通常会考虑费用预算、短信达到率、使用的难易程度等指标），如果需要在商业项目中使用短信服务建议购买短信平台提供的套餐服务。
+
+其实，发送邮件和发送短信一样，也可以通过调用三方服务来完成，在实际的商业项目中，建议自己架设邮件服务器或购买三方服务来发送邮件，这个才是比较靠谱的选择。
+
+## 28.正则表达式的应用
+
+### 正则表达式相关知识
 
 
 
