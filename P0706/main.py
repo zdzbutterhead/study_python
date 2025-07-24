@@ -787,6 +787,27 @@ p.level = 2
 
 # 保存幻灯片
 pres.save('test.pptx')
+
+
+
+
+import re
+
+sentence = 'Oh, shit! 你是傻逼吗? Fuck you.'
+purified = re.sub('fuck|shit|[傻煞沙][比笔逼叉缺吊碉雕]',
+                  '*', sentence, flags=re.IGNORECASE)
+print(purified)  # Oh, *! 你是*吗? * you.
+
+
+
+
+import re
+
+poem = '窗前明月光，疑是地上霜。举头望明月，低头思故乡。'
+sentences_list = re.split(r'[，。]', poem)
+sentences_list = [sentence for sentence in sentences_list if sentence]
+for sentence in sentences_list:
+    print(sentence)
 '''
 
 
