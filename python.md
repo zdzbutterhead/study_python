@@ -4989,6 +4989,561 @@ for sentence in sentences_list:
 
 正则表达式在字符串的处理和匹配上真的非常强大，通过上面的例子相信大家已经感受到了正则表达式的魅力，当然写一个正则表达式对新手来说并不是那么容易，但是很多事情都是熟能生巧，大胆的去尝试就行了，有一个在线的[正则表达式测试工具](https://c.runoob.com/front-end/854)相信能够在一定程度上帮到大家。
 
+## 29.Python语言进阶
+
+### 重要知识点
+
+- 生成式（推导式）的用法
+
+  ```python
+  prices = {
+      'AAPL': 191.88,
+      'GOOG': 1186.96,
+      'IBM': 149.24,
+      'ORCL': 48.44,
+      'ACN': 166.89,
+      'FB': 208.09,
+      'SYMC': 21.29
+  }
+  # 用股票价格大于100元的股票构造一个新的字典
+  prices2 = {key: value for key, value in prices.items() if value > 100}
+  print(prices2)
+  ```
+
+  > 说明：生成式（推导式）可以用来生成列表、集合和字典。
+
+- 嵌套的列表的坑
+
+  ```python
+  names = ['关羽', '张飞', '赵云', '马超', '黄忠']
+  courses = ['语文', '数学', '英语']
+  # 录入五个学生三门课程的成绩
+  # 错误 - 参考http://pythontutor.com/visualize.html#mode=edit
+  # scores = [[None] * len(courses)] * len(names)
+  # 它创建的是一个包含多个指向同一列表的引用的列表，而不是多个独立的列表。具体来说，[None] * len(courses) 会创建一个初始列表（比如 [None, None, None]），但当你用 * len(names) 复制这个列表时，并没有创建新的独立列表，而是复制了对同一个列表的引用。这意味着：当你修改 scores 中的任何一个子列表时，所有子列表都会跟着变化（因为它们本质上是同一个列表）。
+  scores = [[None] * len(courses) for _ in range(len(names))]
+  for row, name in enumerate(names):
+      for col, course in enumerate(courses):
+          scores[row][col] = float(input(f'请输入{name}的{course}成绩: '))
+          print(scores)
+  ```
+
+  > 以上内容参考笔记algorithm4.5的Q&A的最后三个问题
+
+  [Python Tutor](http://pythontutor.com/) - VISUALIZE CODE AND GET LIVE HELP
+
+- `heapq`模块（堆排序）是 Python 标准库中用于实现**堆（heap）数据结构**的模块，主要提供了基于最小堆（min-heap）的一系列操作函数，可高效实现优先级队列、Top N 元素查找等功能。
+
+  ```python
+  """
+  从列表中找出最大的或最小的N个元素
+  堆结构(大根堆/小根堆)
+  """
+  import heapq
+  
+  list1 = [34, 25, 12, 99, 87, 63, 58, 78, 88, 92]
+  list2 = [
+      {'name': 'IBM', 'shares': 100, 'price': 91.1},
+      {'name': 'AAPL', 'shares': 50, 'price': 543.22},
+      {'name': 'FB', 'shares': 200, 'price': 21.09},
+      {'name': 'HPQ', 'shares': 35, 'price': 31.75},
+      {'name': 'YHOO', 'shares': 45, 'price': 16.35},
+      {'name': 'ACME', 'shares': 75, 'price': 115.65}
+  ]
+  print(heapq.nlargest(3, list1))
+  print(heapq.nsmallest(3, list1))
+  print(heapq.nlargest(2, list2, key=lambda x: x['price']))
+  print(heapq.nlargest(2, list2, key=lambda x: x['shares']))
+  
+  # 1. 创建堆（将列表转换为最小堆）
+  nums = [3, 1, 4, 1, 5, 9, 2, 6]
+  heapq.heapify(nums)  # 原地转换，不返回新列表
+  print("最小堆:", nums)  # 输出：[1, 1, 2, 3, 5, 9, 4, 6]（堆结构的列表表示）
+  
+  # 2. 弹出堆顶元素（最小元素）
+  smallest = heapq.heappop(nums)
+  print("弹出的最小元素:", smallest)  # 输出：1
+  print("弹出后堆:", nums)  # 输出：[1, 3, 2, 6, 5, 9, 4]
+  
+  # 3. 插入元素
+  heapq.heappush(nums, 0)
+  print("插入0后堆:", nums)  # 输出：[0, 1, 2, 6, 5, 9, 4, 3]
+  
+  # 4. 获取最大的n个元素
+  largest3 = heapq.nlargest(3, nums)
+  print("最大的3个元素:", largest3)  # 输出：[9, 6, 5]
+  
+  # 5. 获取最小的n个元素
+  smallest2 = heapq.nsmallest(2, nums)
+  print("最小的2个元素:", smallest2)  # 输出：[0, 1]
+  
+  # 6. 实现最大堆（通过插入负值模拟）
+  max_heap = []
+  for num in [3, 1, 4]:
+      heapq.heappush(max_heap, -num)  # 插入负值
+  print("最大堆的堆顶（原最大值）:", -max_heap[0])  # 输出：4
+  ```
+
+  **典型应用**
+
+  1. 优先级队列：堆可高效实现优先级队列，每次弹出优先级最高（或最低）的元素。例如任务调度中，优先处理紧急任务：
+
+     ```python
+     # 优先级队列示例（元组中第一个元素为优先级，值越小优先级越高）
+     tasks = []
+     heapq.heappush(tasks, (2, '任务B'))  # 优先级2
+     heapq.heappush(tasks, (1, '任务A'))  # 优先级1（更高）
+     heapq.heappush(tasks, (3, '任务C'))  # 优先级3
+     
+     while tasks:
+         priority, task = heapq.heappop(tasks)
+         print(f"处理任务: {task}（优先级 {priority}）")
+     # 输出：
+     # 处理任务: 任务A（优先级 1）
+     # 处理任务: 任务B（优先级 2）
+     # 处理任务: 任务C（优先级 3）
+     ```
+
+  2. top n问题
+
+  3. 堆排序：利用堆的特性实现排序（时间复杂度 O (n log n)），但实际中 Python 的 `sorted()` 更优，堆排序多用于特定场景（如部分排序）。
+
+  > 注意
+  >
+  > - `heapq` 仅实现**最小堆**，若需最大堆，可通过插入元素的负值（如 `-num`）间接实现。
+  > - 堆的底层是列表，但列表的索引顺序不直接对应排序后的顺序，仅保证堆顶是最小元素
+  > - 对于已排序的列表，`heapify` 转换后的堆结构可能与原列表顺序不同（堆是完全二叉树的层序遍历结果）。
+
+- `itertools`模块是 Python 标准库中用于创建和操作**迭代器**的模块，提供了一系列高效的工具函数，可用于生成复杂的迭代器、组合数据、处理序列等。这些工具的特点是**惰性计算**（仅在需要时生成元素），节省内存且适合处理大数据流。
+
+  ```python
+  """
+  迭代工具模块
+  """
+  import itertools
+  
+  # 产生ABCD的全排列
+  itertools.permutations('ABCD')
+  # 产生ABCDE的五选三组合
+  itertools.combinations('ABCDE', 3)
+  # 产生ABCD和123的笛卡尔积
+  itertools.product('ABCD', '123')
+  # 产生ABC的无限循环序列
+  itertools.cycle(('A', 'B', 'C'))
+  ```
+
+  1. **无限迭代器（Infinite Iterators）**
+
+  生成无限序列，需配合 `break` 或切片使用，避免无限循环。
+
+  | 函数                 | 功能描述                                   | 示例                             |
+  | -------------------- | ------------------------------------------ | -------------------------------- |
+  | `count(start, step)` | 从 `start` 开始，以 `step` 为步长无限计数  | `count(10, 2)` → 10, 12, 14, ... |
+  | `cycle(iterable)`    | 无限循环迭代 `iterable` 中的元素           | `cycle([1,2])` → 1, 2, 1, 2, ... |
+  | `repeat(value, n)`   | 重复 `value` 最多 `n` 次（`n` 省略则无限） | `repeat('a', 3)` → 'a', 'a', 'a' |
+
+  2. **迭代器组合（Combinatoric Iterators）**
+
+  用于生成数据的排列、组合、笛卡尔积等。
+
+  | 函数                                         | 功能描述                              | 示例                                                         |
+  | -------------------------------------------- | ------------------------------------- | ------------------------------------------------------------ |
+  | `product(*iterables)`                        | 计算多个可迭代对象的笛卡尔积          | `product([1,2], ['a'])` → (1,'a'), (2,'a')                   |
+  | `permutations(iterable, r)`                  | 生成长度为 `r` 的排列（有序）         | `permutations([1,2,3], 2)` → (1,2), (1,3), (2,1), ...        |
+  | `combinations(iterable, r)`                  | 生成长度为 `r` 的组合（无序，不重复） | `combinations([1,2,3], 2)` → (1,2), (1,3), (2,3)             |
+  | `combinations_with_replacement(iterable, r)` | 生成允许重复元素的组合                | `combinations_with_replacement([1,2], 2)` → (1,1), (1,2), (2,2) |
+
+  3. **序列处理（Iterators for Sequence Handling）**
+
+  用于过滤、分组、合并迭代器。
+
+  | 函数                                  | 功能描述                                                  | 示例                                                         |
+  | ------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------ |
+  | `chain(*iterables)`                   | 将多个迭代器 “链” 成一个连续迭代器                        | `chain([1,2], [3,4])` → 1,2,3,4                              |
+  | `filterfalse(predicate, iterable)`    | 保留 `predicate` 为 `False` 的元素                        | `filterfalse(lambda x: x%2==0, [1,2,3])` → 1,3               |
+  | `groupby(iterable, key)`              | 按 `key` 分组，返回 `(key, group)` 对                     | 对 `[('a',1), ('a',2), ('b',3)]` 按第一个元素分组 → ('a', 迭代器), ('b', 迭代器) |
+  | `islice(iterable, start, stop, step)` | 对迭代器进行切片（类似列表切片）                          | `islice(count(), 2, 5)` → 2,3,4                              |
+  | `zip_longest(*iterables, fillvalue)`  | 类似 `zip`，但以最长的迭代器为准，缺省用 `fillvalue` 填充 | `zip_longest([1,2], [3], fillvalue=0)` → (1,3), (2,0)        |
+
+  **典型应用**
+
+  - 生成测试用例的所有组合（笛卡尔积）；
+  - 处理大数据流的分组、过滤（如日志分析）；
+  - 实现排列组合问题（如密码破解、数据分析）；
+  - 合并或拆分迭代器（如多文件内容合并）。
+
+- `collections`模块
+
+  常用的工具类：
+
+  - `namedtuple`：命令元组，它是一个类工厂，接受类型的名称和属性列表来创建一个类。它结合了元组的不可变性和字典的字段访问特性，既保留了元组的轻量性，又能通过名称访问元素，提高代码的可读性和可维护性。
+
+    ```python
+    from collections import namedtuple
+    
+    # 1. 定义 namedtuple 类（第一个参数是类名，第二个参数是字段名列表）
+    Person = namedtuple('Person', ['name', 'age', 'gender'])
+    
+    # 2. 创建实例（参数顺序需与字段名一致）
+    p1 = Person('Alice', 30, 'female')
+    p2 = Person(name='Bob', age=25, gender='male')  # 也支持关键字参数
+    
+    # 3. 访问字段（两种方式）
+    print(p1.name)   # 通过字段名访问（推荐）
+    print(p1[1])     # 通过索引访问（兼容元组）
+    
+    # 4. 不可变性（尝试修改会报错）
+    # p1.age = 31  # 报错：AttributeError: can't set attribute
+    
+    # 5. 转换为字典
+    print(p1._asdict())  # 输出：{'name': 'Alice', 'age': 30, 'gender': 'female'}
+    
+    # 6. 替换字段值（返回新实例，原实例不变）
+    p3 = p1._replace(age=31)
+    print(p3)  # 输出：Person(name='Alice', age=31, gender='female')
+    ```
+
+  - `deque`：双端队列，是列表的替代实现。Python中的列表底层是基于数组来实现的，而deque底层是双向链表，是处理 “两端操作” 的最优选择，尤其在数据量大或需要频繁头部操作时，性能远优于列表。但如果需要频繁随机访问元素（如通过索引读写），则列表更合适。
+
+    ```python
+    from collections import deque
+    
+    # 1. 创建deque（可初始化，也可指定maxlen）
+    dq = deque([1, 2, 3])  # 从列表初始化
+    dq_max = deque(maxlen=3)  # 限制最大长度为3
+    
+    # 2. 尾部操作（类似列表）
+    dq.append(4)  # 右侧添加：deque([1, 2, 3, 4])
+    dq.pop()      # 右侧删除：返回4，结果 deque([1, 2, 3])
+    
+    # 3. 头部操作（deque的优势）
+    dq.appendleft(0)  # 左侧添加：deque([0, 1, 2, 3])
+    dq.popleft()      # 左侧删除：返回0，结果 deque([1, 2, 3])
+    
+    # 4. 限制长度的特性（超过maxlen时自动移除旧元素）
+    for i in range(5):
+        dq_max.append(i)
+    print(dq_max)  # 输出：deque([2, 3, 4], maxlen=3)（前两个元素被自动移除）
+    
+    # 5. 其他常用方法
+    dq.extend([4, 5])      # 尾部扩展：deque([1, 2, 3, 4, 5])
+    dq.extendleft([0, -1]) # 左侧扩展（注意顺序会反转）：deque([-1, 0, 1, 2, 3, 4, 5])
+    dq.reverse()           # 反转：deque([5, 4, 3, 2, 1, 0, -1])
+    dq.rotate(2)           # 向右旋转2步：deque([0, -1, 5, 4, 3, 2, 1])
+    ```
+
+  - `Counter`：`dict`的子类，键是元素，值是元素的计数，专门用于**计数可哈希对象**，是处理频率统计问题的高效工具。它的`most_common()`方法可以帮助我们获取出现频率最高的元素。`Counter`和`dict`的继承关系我认为是值得商榷的，按照CARP原则，`Counter`跟`dict`的关系应该设计为关联关系更为合理。
+
+    ```python
+    from collections import Counter
+    
+    # 1. 基本计数（统计列表元素出现次数）
+    fruits = ['apple', 'banana', 'apple', 'orange', 'banana', 'apple']
+    fruit_counts = Counter(fruits)
+    print(fruit_counts)
+    # 输出：Counter({'apple': 3, 'banana': 2, 'orange': 1})
+    
+    # 2. 统计字符串中字符出现次数
+    word = 'hello world'
+    char_counts = Counter(word)
+    print(char_counts)
+    # 输出：Counter({'l': 3, 'o': 2, 'h': 1, 'e': 1, ' ': 1, 'w': 1, 'r': 1, 'd': 1})
+    
+    # 3. 访问元素计数（类似字典）
+    print(fruit_counts['apple'])  # 输出：3
+    print(fruit_counts.get('grape', 0))  # 输出：0（不存在的元素默认返回0）
+    
+    # 4. 获取最常见的元素（前n名）
+    top2 = fruit_counts.most_common(2)
+    print(top2)  # 输出：[('apple', 3), ('banana', 2)]
+    
+    # 5. 元素计数的更新（增加或减少）
+    fruit_counts.update(['apple', 'grape'])  # 增加计数
+    print(fruit_counts)  # 输出：Counter({'apple': 4, 'banana': 2, 'orange': 1, 'grape': 1})
+    
+    fruit_counts.subtract(['banana', 'apple'])  # 减少计数
+    print(fruit_counts)  # 输出：Counter({'apple': 3, 'banana': 1, 'orange': 1, 'grape': 1})
+    
+    # 6. 转换为普通字典或列表
+    print(dict(fruit_counts))  # 输出：{'apple': 3, 'banana': 1, 'orange': 1, 'grape': 1}
+    print(list(fruit_counts.elements()))  # 输出：['apple', 'apple', 'apple', 'banana', 'orange', 'grape']
+    
+    ```
+
+  - `OrderedDict`：`dict`的子类，它记录了键值对插入的顺序（在 Python 3.7 之前，普通字典不保证插入顺序），看起来既有字典的行为，也有链表的行为。
+
+    ```python
+  from collections import OrderedDict
+    
+    ```
+  # 1. 创建OrderedDict并插入元素（保留插入顺序）
+    od = OrderedDict()
+    od['a'] = 1
+    od['b'] = 2
+    od['c'] = 3
+  
+    # 迭代时按插入顺序返回
+    for key, value in od.items():
+        print(key, value)
+    # 输出：
+    # a 1
+    # b 2
+    # c 3
+  
+    # 2. 特有方法：移动元素到末尾（move_to_end）
+    od.move_to_end('a')  # 将键'a'移到最后
+  print(list(od.keys()))  # 输出：['b', 'c', 'a']
+  
+    # 3. 特有方法：移动元素到开头（last=False）
+    od.move_to_end('c', last=False)  # 将键'c'移到最前
+    print(list(od.keys()))  # 输出：['c', 'b', 'a']
+  
+    # 4. 特有方法：弹出第一个元素（popitem）
+    first_item = od.popitem(last=False)  # last=False表示弹出第一个元素
+    print("弹出的第一个元素:", first_item)  # 输出：('c', 3)
+    print("剩余元素:", list(od.items()))  # 输出：[('b', 2), ('a', 1)]
+  
+    # 5. 顺序敏感的相等性判断
+    od1 = OrderedDict(a=1, b=2)
+    od2 = OrderedDict(b=2, a=1)
+    print(od1 == od2)  # 输出：False（普通字典会返回True）
+    ```
+  
+  - `defaultdict`：类似于字典类型，但是可以通过默认的工厂函数来获得键对应的默认值，相比字典中的`setdefault()`方法，这种做法更加高效。处理 “需要自动初始化键值” 场景的高效工具，尤其适合分组、计数、去重收集等场景。它通过消除冗余的判断逻辑，让代码更简洁、可读性更高，是 Python 中简化字典操作的重要工具。
+  
+    ```python
+    from collections import defaultdict
+    
+    # 1. 以list为默认工厂（自动初始化列表）
+    # 场景：将列表元素按首字母分组
+    words = ['apple', 'banana', 'ant', 'cat', 'book']
+    grouped_by_first = defaultdict(list)  # 键不存在时默认值为[]
+    
+    for word in words:
+        first_char = word[0]
+        grouped_by_first[first_char].append(word)  # 无需判断键是否存在
+    
+    print("按首字母分组:", dict(grouped_by_first))
+    # 输出：{'a': ['apple', 'ant'], 'b': ['banana', 'book'], 'c': ['cat']}
+    
+    # 2. 以int为默认工厂（自动初始化0，适合计数）
+    # 场景：统计元素出现次数
+    nums = [1, 2, 3, 2, 1, 3, 3, 4]
+    counts = defaultdict(int)  # 键不存在时默认值为0
+    
+    for num in nums:
+        counts[num] += 1  # 直接累加，无需初始化
+    
+    print("元素计数:", dict(counts))
+    # 输出：{1: 2, 2: 2, 3: 3, 4: 1}
+    
+    # 3. 以set为默认工厂（自动初始化空集合，适合去重）
+    # 场景：收集不重复的关联元素
+    pairs = [('a', 1), ('b', 2), ('a', 3), ('b', 2)]
+    unique_pairs = defaultdict(set)  # 键不存在时默认值为set()
+    
+    for key, value in pairs:
+        unique_pairs[key].add(value)  # 自动去重
+    
+    print("去重后的关联元素:", dict(unique_pairs))
+    # 输出：{'a': {1, 3}, 'b': {2}}
+    ```
+  
+
+### 数据结构和算法
+
+- 算法：解决问题的方法和步骤
+- 评价算法的好坏：渐近时间复杂度和渐近空间复杂度。
+- 渐近时间复杂度的大O标记：
+  - $O(c)$ - 常量时间复杂度 - 布隆过滤器 / 哈希存储
+  - $O(log_2 n)$对数时间复杂度 - 折半查找（二分查找）
+  - $O(n)$ - 线性时间复杂度 - 顺序查找 / 计数排序
+  - $O(n*log_2 n)$ - 对数线性时间复杂度 - 高级排序算法（归并排序、快速排序）
+  - $O(n^2)$ - 平方时间复杂度 - 简单排序算法（选择排序、插入排序、冒泡排序）
+  - $O(n^3)$ - 立方时间复杂度 - Floyd算法 / 矩阵乘法运算
+  - $O(2^n)$ - 几何级数时间复杂度 - 汉诺塔
+  - $O(n!)$ - 阶乘时间复杂度 - 旅行经销商问题 - NPC
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day31-35/res/algorithm_complexity_1.png)
+
+![img](https://github.com/jackfrued/Python-100-Days/raw/master/Day31-35/res/algorithm_complexity_2.png)
+
+- 排序算法（选择、冒泡和归并）和查找算法（顺序和折半）
+
+  ```python
+  def select_sort(items, comp=lambda x, y: x < y):
+      """简单选择排序"""
+      # 创建列表 items 的一个浅拷贝（shallow copy），并将新列表重新赋值给变量 items
+      items = items[:]
+      for i in range(len(items) - 1):
+          min_index = i
+          for j in range(i + 1, len(items)):
+              if comp(items[j], items[min_index]):
+                  min_index = j
+          items[i], items[min_index] = items[min_index], items[i]
+      return items
+  ```
+
+  ```python
+  def bubble_sort(items, comp=lambda x, y: x > y):
+      """冒泡排序"""
+      items = items[:]
+      for i in range(len(items) - 1):
+          swapped = False
+          for j in range(len(items) - 1 - i):
+              if comp(items[j], items[j + 1]):
+                  items[j], items[j + 1] = items[j + 1], items[j]
+                  swapped = True
+          if not swapped:
+              break
+      return items
+  ```
+
+  ```python
+  def bubble_sort(items, comp=lambda x, y: x > y):
+      """搅拌排序(冒泡排序升级版)"""
+      items = items[:]
+      for i in range(len(items) - 1):
+          swapped = False
+          for j in range(len(items) - 1 - i):
+              if comp(items[j], items[j + 1]):
+                  items[j], items[j + 1] = items[j + 1], items[j]
+                  swapped = True
+          if swapped:
+              swapped = False
+              for j in range(len(items) - 2 - i, i, -1):
+                  if comp(items[j - 1], items[j]):
+                      items[j], items[j - 1] = items[j - 1], items[j]
+                      swapped = True
+          if not swapped:
+              break
+      return items
+  ```
+  
+  ```python
+  def merge(items1, items2, comp=lambda x, y: x < y):
+      """合并(将两个有序的列表合并成一个有序的列表)"""
+      items = []
+      index1, index2 = 0, 0
+      while index1 < len(items1) and index2 < len(items2):
+          if comp(items1[index1], items2[index2]):
+              items.append(items1[index1])
+              index1 += 1
+          else:
+              items.append(items2[index2])
+              index2 += 1
+      items += items1[index1:]
+      items += items2[index2:]
+      return items
+  
+  # 这种写法是合理且必要的，它通过职责分离提升了代码的可读性、易用性和安全性，符合高质量代码的设计原则
+  def merge_sort(items, comp=lambda x, y: x < y):
+      return _merge_sort(list(items), comp)
+  
+  
+  def _merge_sort(items, comp):
+      """归并排序"""
+      if len(items) < 2:
+          return items
+      mid = len(items) // 2
+      left = _merge_sort(items[:mid], comp)
+      right = _merge_sort(items[mid:], comp)
+      return merge(left, right, comp)
+  ```
+  
+  ```python
+  def seq_search(items, key):
+      """顺序查找"""
+      for index, item in enumerate(items):
+          if item == key:
+              return index
+      return -1
+  ```
+  
+  ```python
+  def bin_search(items, key):
+      """折半查找"""
+      start, end = 0, len(items) - 1
+      while start <= end:
+          mid = (start + end) // 2
+          if key > items[mid]:
+              start = mid + 1
+          elif key < items[mid]:
+              end = mid - 1
+          else:
+              return mid
+      return -1
+  ```
+  
+- 常用算法
+
+  - 穷举法 - 又称为暴力破解法，对所有的可能性进行验证，直到找到正确答案。
+  - 贪婪法 - 在对问题求解时，总是做出在当前看来最好的选择，不追求最优解，快速找到满意解。
+  - 分治法 - 把一个复杂的问题分成两个或更多的相同或相似的子问题，再把子问题分成更小的子问题，直到可以直接求解的程度，最后将子问题的解进行合并得到原问题的解。
+  - 回溯法 - 回溯法又称为试探法，按选优条件向前搜索，当搜索到某一步发现原先选择并不优或达不到目标时，就退回一步重新选择。
+  - 动态规划 - 基本思想也是将待求解问题分解成若干个子问题，先求解并保存这些子问题的解，避免产生大量的重复运算。
+
+  穷举法例子：百钱百鸡和五人分鱼。
+
+  ```python
+  # 公鸡5元一只 母鸡3元一只 小鸡1元三只
+  # 用100元买100只鸡 问公鸡/母鸡/小鸡各多少只
+  for x in range(20):
+      for y in range(33):
+          z = 100 - x - y
+          if 5 * x + 3 * y + z // 3 == 100 and z % 3 == 0:
+              print(x, y, z)
+  
+  # A、B、C、D、E五人在某天夜里合伙捕鱼 最后疲惫不堪各自睡觉
+  # 第二天A第一个醒来 他将鱼分为5份 扔掉多余的1条 拿走自己的一份
+  # B第二个醒来 也将鱼分为5份 扔掉多余的1条 拿走自己的一份
+  # 然后C、D、E依次醒来也按同样的方式分鱼 问他们至少捕了多少条鱼
+  fish = 6
+  while True:
+      total = fish
+      enough = True
+      for _ in range(5):
+          if (total - 1) % 5 == 0:
+              total = (total - 1) // 5 * 4
+          else:
+              enough = False
+              break
+      if enough:
+          print(fish)
+          break
+      fish += 5
+  ```
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
