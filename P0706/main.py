@@ -985,4 +985,146 @@ if __name__ == '__main__':
 
 
 
+"""
+贪婪法：在对问题求解时，总是做出在当前看来是最好的选择，不追求最优解，快速找到满意解。
+输入：
+20 6
+电脑 200 20
+收音机 20 4
+钟 175 10
+花瓶 50 2
+书 10 1
+油画 90 9
 
+class Thing(object):
+    物品
+
+    def __init__(self, name, price, weight):
+        self.name = name
+        self.price = price
+        self.weight = weight
+
+    @property
+    def value(self):
+        价格重量比
+        return self.price / self.weight
+
+
+def input_thing():
+    输入物品信息
+    name_str, price_str, weight_str = input().split()
+    return name_str, int(price_str), int(weight_str)
+
+
+def main():
+    主函数
+    max_weight, num_of_things = map(int, input().split())
+    all_things = []
+    for _ in range(num_of_things):
+        all_things.append(Thing(*input_thing()))
+    all_things.sort(key=lambda x: x.value, reverse=True)
+    total_weight = 0
+    total_price = 0
+    for thing in all_things:
+        if total_weight + thing.weight <= max_weight:
+            print(f'小偷拿走了{thing.name}')
+            total_weight += thing.weight
+            total_price += thing.price
+    print(f'总价值: {total_price}美元')
+
+
+if __name__ == '__main__':
+    main()
+"""
+
+
+'''
+def partition(items,low,high,compare):
+    pivot = items[high]
+    i = low - 1
+    for j in range(low, high):
+        if compare(items[j],pivot):
+            i+=1
+            items[i],items[j] = items[j],items[i]
+    items[i+1],items[high]=items[high],items[i+1]
+    return i+1
+
+def quick_sort(items,low,high,compare=lambda x,y : x<= y):
+    items = items[:]
+    _quick_sort(items,0,len(items)-1,compare)
+    return items
+
+def _quick_sort(items,low,high,compare):
+    if low < high:
+        pivot = partition(items,low,high,compare)
+        _quick_sort(items,low,pivot-1,compare)
+        _quick_sort(items,pivot+1,high,compare)
+'''
+
+
+'''
+import sys
+import time
+
+SIZE = 5
+total = 0
+
+
+def print_board(board):
+    for row in board:
+        for col in row:
+            print(str(col).center(4), end='')
+        print()
+
+
+def patrol(board, row, col, step=1):
+    if row >= 0 and row < SIZE and \
+        col >= 0 and col < SIZE and \
+        board[row][col] == 0:
+        board[row][col] = step
+        if step == SIZE * SIZE:
+            global total
+            total += 1
+            print(f'第{total}种走法: ')
+            print_board(board)
+        patrol(board, row - 2, col - 1, step + 1)
+        patrol(board, row - 1, col - 2, step + 1)
+        patrol(board, row + 1, col - 2, step + 1)
+        patrol(board, row + 2, col - 1, step + 1)
+        patrol(board, row + 2, col + 1, step + 1)
+        patrol(board, row + 1, col + 2, step + 1)
+        patrol(board, row - 1, col + 2, step + 1)
+        patrol(board, row - 2, col + 1, step + 1)
+        board[row][col] = 0
+
+
+def main():
+    board = [[0] * SIZE for _ in range(SIZE)]
+    patrol(board, SIZE - 1, SIZE - 1)
+
+
+if __name__ == '__main__':
+    main()
+'''
+
+
+'''
+from functools import wraps
+from time import time
+
+
+def record(output):
+    """可以参数化的装饰器"""
+
+    def decorate(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            start = time()
+            result = func(*args, **kwargs)
+            output(func.__name__, time() - start)
+            return result
+
+        return wrapper
+
+    return decorate
+'''

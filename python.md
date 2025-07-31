@@ -5274,81 +5274,89 @@ for sentence in sentences_list:
 
     ```python
   from collections import OrderedDict
+    # 1. 创建OrderedDict并插入元素（保留插入顺序）
     
+      od = OrderedDict()
+      od['a'] = 1
+      od['b'] = 2
+      od['c'] = 3
+    
+      # 迭代时按插入顺序返回
+    
+      for key, value in od.items():
+          print(key, value)
+    
+      # 输出：
+    
+      # a 1
+    
+      # b 2
+    
+      # c 3
+    
+      # 2. 特有方法：移动元素到末尾（move_to_end）
+    
+      od.move_to_end('a')  # 将键'a'移到最后
+    print(list(od.keys()))  # 输出：['b', 'c', 'a']
+    
+      # 3. 特有方法：移动元素到开头（last=False）
+    
+      od.move_to_end('c', last=False)  # 将键'c'移到最前
+      print(list(od.keys()))  # 输出：['c', 'b', 'a']
+    
+      # 4. 特有方法：弹出第一个元素（popitem）
+    
+      first_item = od.popitem(last=False)  # last=False表示弹出第一个元素
+      print("弹出的第一个元素:", first_item)  # 输出：('c', 3)
+      print("剩余元素:", list(od.items()))  # 输出：[('b', 2), ('a', 1)]
+    
+      # 5. 顺序敏感的相等性判断
+    
+      od1 = OrderedDict(a=1, b=2)
+      od2 = OrderedDict(b=2, a=1)
+      print(od1 == od2)  # 输出：False（普通字典会返回True）
     ```
-  # 1. 创建OrderedDict并插入元素（保留插入顺序）
-    od = OrderedDict()
-    od['a'] = 1
-    od['b'] = 2
-    od['c'] = 3
+    
   
-    # 迭代时按插入顺序返回
-    for key, value in od.items():
-        print(key, value)
-    # 输出：
-    # a 1
-    # b 2
-    # c 3
-  
-    # 2. 特有方法：移动元素到末尾（move_to_end）
-    od.move_to_end('a')  # 将键'a'移到最后
-  print(list(od.keys()))  # 输出：['b', 'c', 'a']
-  
-    # 3. 特有方法：移动元素到开头（last=False）
-    od.move_to_end('c', last=False)  # 将键'c'移到最前
-    print(list(od.keys()))  # 输出：['c', 'b', 'a']
-  
-    # 4. 特有方法：弹出第一个元素（popitem）
-    first_item = od.popitem(last=False)  # last=False表示弹出第一个元素
-    print("弹出的第一个元素:", first_item)  # 输出：('c', 3)
-    print("剩余元素:", list(od.items()))  # 输出：[('b', 2), ('a', 1)]
-  
-    # 5. 顺序敏感的相等性判断
-    od1 = OrderedDict(a=1, b=2)
-    od2 = OrderedDict(b=2, a=1)
-    print(od1 == od2)  # 输出：False（普通字典会返回True）
-    ```
-  
-  - `defaultdict`：类似于字典类型，但是可以通过默认的工厂函数来获得键对应的默认值，相比字典中的`setdefault()`方法，这种做法更加高效。处理 “需要自动初始化键值” 场景的高效工具，尤其适合分组、计数、去重收集等场景。它通过消除冗余的判断逻辑，让代码更简洁、可读性更高，是 Python 中简化字典操作的重要工具。
+  -  `defaultdict`：类似于字典类型，但是可以通过默认的工厂函数来获得键对应的默认值，相比字典中的`setdefault()`方法，这种做法更加高效。处理 “需要自动初始化键值” 场景的高效工具，尤其适合分组、计数、去重收集等场景。它通过消除冗余的判断逻辑，让代码更简洁、可读性更高，是 Python 中简化字典操作的重要工具。
   
     ```python
     from collections import defaultdict
-    
-    # 1. 以list为默认工厂（自动初始化列表）
-    # 场景：将列表元素按首字母分组
-    words = ['apple', 'banana', 'ant', 'cat', 'book']
-    grouped_by_first = defaultdict(list)  # 键不存在时默认值为[]
-    
-    for word in words:
-        first_char = word[0]
-        grouped_by_first[first_char].append(word)  # 无需判断键是否存在
-    
-    print("按首字母分组:", dict(grouped_by_first))
-    # 输出：{'a': ['apple', 'ant'], 'b': ['banana', 'book'], 'c': ['cat']}
-    
-    # 2. 以int为默认工厂（自动初始化0，适合计数）
-    # 场景：统计元素出现次数
-    nums = [1, 2, 3, 2, 1, 3, 3, 4]
-    counts = defaultdict(int)  # 键不存在时默认值为0
-    
-    for num in nums:
-        counts[num] += 1  # 直接累加，无需初始化
-    
-    print("元素计数:", dict(counts))
-    # 输出：{1: 2, 2: 2, 3: 3, 4: 1}
-    
-    # 3. 以set为默认工厂（自动初始化空集合，适合去重）
-    # 场景：收集不重复的关联元素
-    pairs = [('a', 1), ('b', 2), ('a', 3), ('b', 2)]
-    unique_pairs = defaultdict(set)  # 键不存在时默认值为set()
-    
-    for key, value in pairs:
-        unique_pairs[key].add(value)  # 自动去重
-    
-    print("去重后的关联元素:", dict(unique_pairs))
-    # 输出：{'a': {1, 3}, 'b': {2}}
+      
+      # 1. 以list为默认工厂（自动初始化列表）
+      # 场景：将列表元素按首字母分组
+      words = ['apple', 'banana', 'ant', 'cat', 'book']
+      grouped_by_first = defaultdict(list)  # 键不存在时默认值为[]
+      
+      for word in words:
+          first_char = word[0]
+          grouped_by_first[first_char].append(word)  # 无需判断键是否存在
+      
+      print("按首字母分组:", dict(grouped_by_first))
+      # 输出：{'a': ['apple', 'ant'], 'b': ['banana', 'book'], 'c': ['cat']}
+      
+      # 2. 以int为默认工厂（自动初始化0，适合计数）
+      # 场景：统计元素出现次数
+      nums = [1, 2, 3, 2, 1, 3, 3, 4]
+      counts = defaultdict(int)  # 键不存在时默认值为0
+      
+      for num in nums:
+          counts[num] += 1  # 直接累加，无需初始化
+      
+      print("元素计数:", dict(counts))
+      # 输出：{1: 2, 2: 2, 3: 3, 4: 1}
+      
+      # 3. 以set为默认工厂（自动初始化空集合，适合去重）
+      # 场景：收集不重复的关联元素
+      pairs = [('a', 1), ('b', 2), ('a', 3), ('b', 2)]
+      unique_pairs = defaultdict(set)  # 键不存在时默认值为set()
+      
+      for key, value in pairs:
+          unique_pairs[key].add(value)  # 自动去重
+      
+      print("去重后的关联元素:", dict(unique_pairs))
+      # 输出：{'a': {1, 3}, 'b': {2}}
     ```
-  
 
 ### 数据结构和算法
 
@@ -5514,13 +5522,390 @@ for sentence in sentences_list:
       fish += 5
   ```
 
+  贪婪法例子：假设小偷有一个背包，最多能装20公斤赃物，他闯入一户人家，发现如下表所示的物品。很显然，他不能把所有物品都装进背包，所以必须确定拿走哪些物品，留下哪些物品。
   
+  | 名称   | 价格（美元） | 重量（kg） |
+  | ------ | ------------ | ---------- |
+  | 电脑   | 200          | 20         |
+  | 收音机 | 20           | 4          |
+  | 钟     | 175          | 10         |
+  | 花瓶   | 50           | 2          |
+  | 书     | 10           | 1          |
+  | 油画   | 90           | 9          |
+  
+  ```python
+  """
+  贪婪法：在对问题求解时，总是做出在当前看来是最好的选择，不追求最优解，快速找到满意解。
+  输入：
+  20 6
+  电脑 200 20
+  收音机 20 4
+  钟 175 10
+  花瓶 50 2
+  书 10 1
+  油画 90 9
+  """
+  class Thing(object):
+      """物品"""
+  
+      def __init__(self, name, price, weight):
+          self.name = name
+          self.price = price
+          self.weight = weight
+  
+      @property
+      def value(self):
+          """价格重量比"""
+          return self.price / self.weight
+  
+  
+  def input_thing():
+      """输入物品信息"""
+      name_str, price_str, weight_str = input().split()
+      return name_str, int(price_str), int(weight_str)
+  
+  
+  def main():
+      """主函数"""
+      # map() 是 Python 内置函数，用于将一个函数应用到可迭代对象（如列表、元组、字符串等）的每个元素上，并返回一个包含结果的迭代器（map 对象）。
+      max_weight, num_of_things = map(int, input().split())
+      all_things = []
+      for _ in range(num_of_things):
+          # * 运算符：这里是解包操作，将 input_thing() 返回的元组拆分成三个独立的参数。
+          # 不能直接写 all_things.append(Thing(input_thing()))，是因为 input_thing() 返回的是一个元组（(name, price, weight)），而 Thing 类的构造函数需要三个独立的参数，直接传递元组会导致参数不匹配。
+          # 也可以手动拆分
+          # name, price, weight = input_thing()
+          # all_things.append(Thing(name, price, weight))
+          all_things.append(Thing(*input_thing()))
+      all_things.sort(key=lambda x: x.value, reverse=True)
+      total_weight = 0
+      total_price = 0
+      for thing in all_things:
+          if total_weight + thing.weight <= max_weight:
+              print(f'小偷拿走了{thing.name}')
+              total_weight += thing.weight
+              total_price += thing.price
+      print(f'总价值: {total_price}美元')
+  
+  
+  if __name__ == '__main__':
+      main()
+  ```
+  
+  分治法例子：[快速排序](https://zh.wikipedia.org/zh/快速排序)。
+  
+  ```python
+  """
+  快速排序 - 选择枢轴对元素进行划分，左边都比枢轴小右边都比枢轴大
+  """
+  def quick_sort(items, comp=lambda x, y: x <= y):
+  	# 这种写法其实是冗余的，因为 list(items) 和 [:] 都能独立完成浅拷贝：
+      # items = list(items)
+      # items = items[:]
+      items = list(items)[:]
+      _quick_sort(items, 0, len(items) - 1, comp)
+      return items
+  
+  
+  def _quick_sort(items, start, end, comp):
+      if start < end:
+          pos = _partition(items, start, end, comp)
+          _quick_sort(items, start, pos - 1, comp)
+          _quick_sort(items, pos + 1, end, comp)
+  
+  
+  def _partition(items, start, end, comp):
+      pivot = items[end]
+      i = start - 1
+      for j in range(start, end):
+          if comp(items[j], pivot):
+              i += 1
+              items[i], items[j] = items[j], items[i]
+      items[i + 1], items[end] = items[end], items[i + 1]
+      return i + 1
+  ```
+  
+  回溯法例子：[骑士巡逻](https://zh.wikipedia.org/zh/骑士巡逻)。
+  
+  ```python
+  """
+  递归回溯法：叫称为试探法，按选优条件向前搜索，当搜索到某一步，发现原先选择并不优或达不到目标时，就退回一步重新选择，比较经典的问题包括骑士巡逻、八皇后和迷宫寻路等。
+  """
+  import sys
+  import time
+  
+  SIZE = 5
+  total = 0
+  
+  
+  def print_board(board):
+      for row in board:
+          for col in row:
+              print(str(col).center(4), end='')
+          print()
+  
+  
+  def patrol(board, row, col, step=1):
+      if row >= 0 and row < SIZE and \
+          col >= 0 and col < SIZE and \
+          board[row][col] == 0:
+          board[row][col] = step
+          if step == SIZE * SIZE:
+              global total
+              total += 1
+              print(f'第{total}种走法: ')
+              print_board(board)
+          patrol(board, row - 2, col - 1, step + 1)
+          patrol(board, row - 1, col - 2, step + 1)
+          patrol(board, row + 1, col - 2, step + 1)
+          patrol(board, row + 2, col - 1, step + 1)
+          patrol(board, row + 2, col + 1, step + 1)
+          patrol(board, row + 1, col + 2, step + 1)
+          patrol(board, row - 1, col + 2, step + 1)
+          patrol(board, row - 2, col + 1, step + 1)
+          board[row][col] = 0
+  
+  
+  def main():
+      board = [[0] * SIZE for _ in range(SIZE)]
+      patrol(board, SIZE - 1, SIZE - 1)
+  
+  
+  if __name__ == '__main__':
+      main()
+  ```
+  
+  动态规划例子：子列表元素之和的最大值。
+  
+  > 说明：子列表指的是列表中索引（下标）连续的元素构成的列表；列表中的元素是int类型，可能包含正整数、0、负整数；程序输入列表中的元素，输出子列表元素求和的最大值，例如：
+  >
+  > 输入：1 -2 3 5 -3 2
+  >
+  > 输出：8
+  >
+  > 输入：0 -2 3 5 -1 2
+  >
+  > 输出：9
+  >
+  > 输入：-9 -2 -3 -5 -3
+  >
+  > 输出：-2
+  
+  ```python
+  '''
+  动态规划的核心是通过定义状态和推导状态转移方程，将问题分解为重叠子问题并高效求解。以下是具体思路：
+  1. 定义状态（关键）
+  设 dp[i] 表示 “以列表中第 i 个元素结尾的最大子数组和”。
+  
+  这里的 “以第 i 个元素结尾” 是关键限制，确保子数组的连续性（因为子数组必须连续，所以第 i 个元素必须包含在子数组中）。
+  例如：对于列表 [-2, 1, -3, 4]，dp[3]（假设索引从 0 开始）表示以 4 结尾的最大子数组和，即 4（子数组 [4]）。
+  2. 推导状态转移方程
+  对于第 i 个元素，有两种选择：
+  
+  选择 1：将第 i 个元素加入 “以上一个元素（i-1）结尾的最大子数组”，形成新的子数组（[... , i-1, i]）。此时和为 dp[i-1] + nums[i]。
+  选择 2：从第 i 个元素开始，单独作为一个子数组（[i]）。此时和为 nums[i]。
+  dp[i] 取两种选择中的最大值，即：dp[i] = max(nums[i], dp[i-1] + nums[i])
+  '''
+  def main():
+      items = list(map(int, input().split()))
+      overall = partial = items[0]
+      for i in range(1, len(items)):
+          partial = max(items[i], partial + items[i])
+          overall = max(partial, overall)
+      print(overall)
+  
+  
+  if __name__ == '__main__':
+      main()
+  ```
+  
+  > **说明**：这个题目最容易想到的解法是使用二重循环，但是代码的时间性能将会变得非常的糟糕。使用动态规划的思想，仅仅是多用了两个变量，就将原来$O(N^2)$复杂度的问题变成了$O(N)$。
 
+### 函数的使用方式
 
+- 将函数视为“一等公民”
+  - 函数可以赋值给变量
+  - 函数可以作为函数的参数
+  - 函数可以作为函数的返回值
 
+- 高阶函数的用法（`filter`、`map`以及它们的替代品）
 
+  ```python
+  items1 = list(map(lambda x: x ** 2, filter(lambda x: x % 2, range(1, 10))))
+  items2 = [x ** 2 for x in range(1, 10) if x % 2]
+  ```
 
+- 位置参数、可变参数、关键字参数、命名关键字参数
 
+- 参数的元信息（代码可读性问题）
+
+- 匿名函数和内联函数的用法（`lambda`函数）
+
+- 闭包和作用域问题
+
+  - Python搜索变量的LEGB顺序（Local >>> Embedded >>> Global >>> Built-in）
+
+  - `global`和`nonlocal`关键字的作用
+
+  - `global`：声明或定义全局变量（要么直接使用现有的全局作用域的变量，要么定义一个变量放到全局作用域）。
+
+    `nonlocal`：声明使用嵌套作用域的变量（嵌套作用域必须存在该变量，否则报错）。
+
+- 装饰器函数（使用装饰器和取消装饰器）
+
+  例子：输出函数执行时间的装饰器。
+
+  ```python
+  def record_time(func):
+      """自定义装饰函数的装饰器"""
+      
+      @wraps(func)
+      def wrapper(*args, **kwargs):
+          start = time()
+          result = func(*args, **kwargs)
+          print(f'{func.__name__}: {time() - start}秒')
+          return result
+          
+      return wrapper
+  ```
+
+  如果装饰器不希望跟`print`函数耦合，可以编写可以参数化的装饰器。
+
+  ```python
+  from functools import wraps
+  from time import time
+  
+  
+  def record(output):
+      """可以参数化的装饰器"""
+  	
+  	def decorate(func):
+  		
+  		@wraps(func)
+  		def wrapper(*args, **kwargs):
+  			start = time()
+  			result = func(*args, **kwargs)
+  			output(func.__name__, time() - start)
+  			return result
+              
+  		return wrapper
+  	
+  	return decorate
+  ```
+
+  ```python
+  from functools import wraps
+  from time import time
+  
+  
+  class Record():
+      """通过定义类的方式定义装饰器"""
+  
+      def __init__(self, output):
+          self.output = output
+  
+      def __call__(self, func):
+  
+          @wraps(func)
+          def wrapper(*args, **kwargs):
+              start = time()
+              result = func(*args, **kwargs)
+              self.output(func.__name__, time() - start)
+              return result
+  
+          return wrapper
+  ```
+
+  > **说明**：由于对带装饰功能的函数添加了@wraps装饰器，可以通过`func.__wrapped__`方式获得被装饰之前的函数或类来取消装饰器的作用。
+
+  例子：用装饰器来实现单例模式(用于保证被装饰的类在程序运行过程中**只会创建一个实例对象**，无论尝试实例化多少次，都返回同一个对象)。
+
+  ```python
+  from functools import wraps
+  
+  
+  def singleton(cls):
+      """装饰类的装饰器"""
+      # 定义一个字典，用于缓存已经创建的类实例。键是类本身（cls），值是该类的唯一实例。
+      instances = {}
+  
+      # 由于这个字典定义在装饰器函数内部，形成了一个 “闭包”，其生命周期会伴随整个程序，确保实例不会被销毁。
+      @wraps(cls)
+      def wrapper(*args, **kwargs):
+          if cls not in instances:
+              instances[cls] = cls(*args, **kwargs)
+          return instances[cls]
+  
+      return wrapper
+  
+  
+  @singleton
+  class President:
+      """总统(单例类)"""
+      pass
+  ```
+
+  > **提示**：上面的代码中用到了闭包（closure），不知道你是否已经意识到了。还有一个小问题就是，上面的代码并没有实现线程安全的单例，如果要实现线程安全的单例应该怎么做呢？
+  >
+  > 闭包（Closure）是 Python 中一种特殊的函数现象，指的是**一个嵌套函数能够记住并访问其外部（非全局）作用域中的变量，即使外部函数已经执行完毕**。简单来说，闭包就是 “**携带状态的函数**”，它将函数与其依赖的外部变量 “捆绑” 在一起。
+  >
+  > 闭包的构成条件
+  >
+  > 要形成闭包，需要满足三个条件：
+  >
+  > 1. **存在嵌套函数**：一个函数（内层函数）定义在另一个函数（外层函数）的内部。
+  > 2. **内层函数引用了外层函数的变量**：内层函数使用了外层函数中定义的非全局变量。
+  > 3. **外层函数返回内层函数**：外层函数执行后，将内层函数作为返回值返回。
+  >
+  > ```python
+  > def outer_func(message):
+  >     # 外层函数的变量（非全局）
+  >     msg = message
+  >     
+  >     # 内层函数（嵌套函数）
+  >     def inner_func():
+  >         # 引用外层函数的变量msg
+  >         print(msg)
+  >     
+  >     # 返回内层函数
+  >     return inner_func
+  > 
+  > # 调用外层函数，得到内层函数的引用
+  > closure = outer_func("Hello, Closure!")
+  > 
+  > # 执行内层函数（此时外层函数已执行完毕）
+  > closure()  # 输出：Hello, Closure!
+  > ```
+  >
+  > 关键观察：
+  >
+  > - 外层函数 `outer_func` 执行完毕后，理论上其内部变量 `msg` 应该被销毁。
+  > - 但实际调用 `closure()` 时，`inner_func` 仍然能访问 `msg` 的值 —— 这就是闭包的作用：**内层函数 “记住” 了外层函数的变量**。
+
+  线程安全的单例装饰器。
+
+  ```python
+  from functools import wraps
+  from threading import RLock
+  
+  
+  def singleton(cls):
+      """线程安全的单例装饰器"""
+      instances = {}
+      locker = RLock()
+  
+      @wraps(cls)
+      def wrapper(*args, **kwargs):
+          if cls not in instances:
+              with locker:
+                  if cls not in instances:
+                      instances[cls] = cls(*args, **kwargs)
+          return instances[cls]
+  
+      return wrapper
+  ```
+
+  > **提示**：上面的代码用到了`with`上下文语法来进行锁操作，因为锁对象本身就是上下文管理器对象（支持`__enter__`和`__exit__`魔术方法）。在`wrapper`函数中，我们先做了一次不带锁的检查，然后再做带锁的检查，这样做比直接加锁检查性能要更好，如果对象已经创建就没有必须再去加锁而是直接返回该对象就可以了。
 
 
 
