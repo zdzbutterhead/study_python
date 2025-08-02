@@ -5317,7 +5317,6 @@ for sentence in sentences_list:
       print(od1 == od2)  # 输出：False（普通字典会返回True）
     ```
     
-  
   -  `defaultdict`：类似于字典类型，但是可以通过默认的工厂函数来获得键对应的默认值，相比字典中的`setdefault()`方法，这种做法更加高效。处理 “需要自动初始化键值” 场景的高效工具，尤其适合分组、计数、去重收集等场景。它通过消除冗余的判断逻辑，让代码更简洁、可读性更高，是 Python 中简化字典操作的重要工具。
   
     ```python
@@ -5897,19 +5896,958 @@ for sentence in sentences_list:
       @wraps(cls)
       def wrapper(*args, **kwargs):
           if cls not in instances:
+              # with 语句会自动获取锁（locker.acquire()）并在代码块执行完毕后释放锁（locker.release()），无需手动管理，避免遗漏释放导致的死锁。
+              # 当多个线程同时执行到 with locker 时，只有一个线程能获取锁进入临界区，其他线程会阻塞等待，直到锁被释放。
               with locker:
                   if cls not in instances:
                       instances[cls] = cls(*args, **kwargs)
           return instances[cls]
   
-      return wrapper
+    return wrapper
   ```
-
+  
   > **提示**：上面的代码用到了`with`上下文语法来进行锁操作，因为锁对象本身就是上下文管理器对象（支持`__enter__`和`__exit__`魔术方法）。在`wrapper`函数中，我们先做了一次不带锁的检查，然后再做带锁的检查，这样做比直接加锁检查性能要更好，如果对象已经创建就没有必须再去加锁而是直接返回该对象就可以了。
 
+### 面向对象相关知识
 
+- 三大支柱：封装、继承、多态
 
+  例子：工资结算系统。
 
+  ```python
+  """
+  月薪结算系统 - 部门经理每月15000 程序员每小时200 销售员1800底薪加销售额5%提成
+  """
+  from abc import ABCMeta, abstractmethod
+  
+  
+  class Employee(metaclass=ABCMeta):
+      """员工(抽象类)"""
+  
+      def __init__(self, name):
+          self.name = name
+  	# 被标记的方法必须在子类中被重写（实现具体逻辑），否则子类无法实例化（会报错）。
+      @abstractmethod
+      def get_salary(self):
+          """结算月薪(抽象方法)"""
+          pass
+  
+  
+  class Manager(Employee):
+      """部门经理"""
+  
+      def get_salary(self):
+          return 15000.0
+  
+  
+  class Programmer(Employee):
+      """程序员"""
+  
+      def __init__(self, name, working_hour=0):
+          self.working_hour = working_hour
+          super().__init__(name)
+  
+      def get_salary(self):
+          return 200.0 * self.working_hour
+  
+  
+  class Salesman(Employee):
+      """销售员"""
+  
+      def __init__(self, name, sales=0.0):
+          self.sales = sales
+          super().__init__(name)
+  
+      def get_salary(self):
+          return 1800.0 + self.sales * 0.05
+  
+  
+  class EmployeeFactory:
+      """创建员工的工厂（工厂模式 - 通过工厂实现对象使用者和对象之间的解耦合）"""
+  
+      @staticmethod
+      def create(emp_type, *args, **kwargs):
+          """创建员工"""
+          all_emp_types = {'M': Manager, 'P': Programmer, 'S': Salesman}
+          # 将输入的 emp_type 转换为大写
+          cls = all_emp_types[emp_type.upper()]
+          # 用获取到的类（cls）创建实例，传入 *args, **kwargs 作为构造参数（如 Manager(name, salary)）。
+          return cls(*args, **kwargs) if cls else None
+  
+  
+  def main():
+      """主函数"""
+      emps = [
+          EmployeeFactory.create('M', '曹操'), 
+          EmployeeFactory.create('P', '荀彧', 120),
+          EmployeeFactory.create('P', '郭嘉', 85), 
+          EmployeeFactory.create('S', '典韦', 123000),
+      ]
+      for emp in emps:
+          print(f'{emp.name}: {emp.get_salary():.2f}元')
+  
+  
+  if __name__ == '__main__':
+      main()
+  ```
+
+- 类与类之间的关系
+
+  - is-a关系：继承
+  - has-a关系：关联 / 聚合 / 合成
+  - use-a关系：依赖
+
+  例子：扑克游戏。
+
+  ```python
+  """
+  经验：符号常量总是优于字面常量，枚举类型是定义符号常量的最佳选择
+  """
+  from enum import Enum, unique
+  
+  import random
+  
+  # enum 模块提供的装饰器，用于确保枚举类中所有成员的值都是唯一的。如果出现值重复的成员，会抛出 ValueError 异常，避免定义时的逻辑错误。
+  @unique
+  class Suite(Enum):
+      """花色"""
+  
+      SPADE, HEART, CLUB, DIAMOND = range(4)
+  
+      def __lt__(self, other):
+          return self.value < other.value
+  
+  
+  class Card:
+      """牌"""
+  
+      def __init__(self, suite, face):
+          """初始化方法"""
+          self.suite = suite
+          self.face = face
+  
+      def show(self):
+          """显示牌面"""
+          suites = ['♠︎', '♥︎', '♣︎', '♦︎']
+          faces = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
+          return f'{suites[self.suite.value]}{faces[self.face]}'
+  
+      def __repr__(self):
+          return self.show()
+  
+  
+  class Poker:
+      """扑克"""
+  
+      def __init__(self):
+          self.index = 0
+          self.cards = [Card(suite, face)
+                        for suite in Suite
+                        for face in range(1, 14)]
+  
+      def shuffle(self):
+          """洗牌（随机乱序）"""
+          random.shuffle(self.cards)
+          self.index = 0
+  
+      def deal(self):
+          """发牌"""
+          card = self.cards[self.index]
+          self.index += 1
+          return card
+  
+      @property
+      def has_more(self):
+          return self.index < len(self.cards)
+  
+  
+  class Player:
+      """玩家"""
+  
+      def __init__(self, name):
+          self.name = name
+          self.cards = []
+  
+      def get_one(self, card):
+          """摸一张牌"""
+          self.cards.append(card)
+  
+      def sort(self, comp=lambda card: (card.suite, card.face)):
+          """整理手上的牌"""
+          self.cards.sort(key=comp)
+  
+  
+  def main():
+      """主函数"""
+      poker = Poker()
+      poker.shuffle()
+      players = [Player('东邪'), Player('西毒'), Player('南帝'), Player('北丐')]
+      while poker.has_more:
+          for player in players:
+                  player.get_one(poker.deal())
+      for player in players:
+          player.sort()
+          print(player.name, end=': ')
+          print(player.cards)
+  
+  
+  if __name__ == '__main__':
+      main()
+  ```
+
+  > **说明**：上面的代码中使用了Emoji字符来表示扑克牌的四种花色，在某些不支持Emoji字符的系统上可能无法显示。
+
+- 对象的复制（深复制/深拷贝/深度克隆和浅复制/浅拷贝/影子克隆）
+
+- 垃圾回收、循环引用和弱引用
+
+  Python使用了自动化内存管理，这种管理机制以**引用计数**为基础，同时也引入了**标记-清除**和**分代收集**两种机制为辅的策略。
+
+  ```c
+  typedef struct _object {
+      /* 引用计数 */
+      /* 记录当前对象被引用的次数（引用计数机制），是 Python 内存管理的核心。 */
+      /*  当对象被创建或被引用时（如赋值给变量、作为参数传递），ob_refcnt 加 1。
+  		当引用失效时（如变量被删除、离开作用域），ob_refcnt 减 1。
+  		当 ob_refcnt 减到 0 时，对象占用的内存会被 Python 解释器回收。*/
+      int ob_refcnt;
+      /* 对象指针 */
+      /* 指向该对象的 “类型对象”（struct _typeobject），用于标识当前对象的类型（如整数、列表、函数等）。
+      类型对象中存储了该类型的元信息（如类型名、支持的方法、创建实例的逻辑等）。例如，一个列表对象的 ob_type 指向 list 类型对象，因此 Python 知道它是列表，支持 append()、len() 等操作。
+       */
+      struct _typeobject *ob_type;
+  } PyObject;
+  ```
+
+  ```c
+  /* 增加引用计数的宏定义 */
+  #define Py_INCREF(op)   ((op)->ob_refcnt++)
+  /* 减少引用计数的宏定义 */
+  /* --(op)->ob_refcnt：先将引用计数减 1。
+  if (..., != 0) ;：如果减 1 后引用计数不为 0，什么也不做（对象仍被其他地方引用）。
+  else __Py_Dealloc(...)：如果引用计数变为 0，调用 __Py_Dealloc 函数释放对象内存（实际是调用对象类型对应的析构函数）。 */
+  #define Py_DECREF(op) \ //减少计数
+      if (--(op)->ob_refcnt != 0) \
+          ; \
+      else \
+          __Py_Dealloc((PyObject *)(op))
+  ```
+
+  导致引用计数+1的情况：
+
+  - 对象被创建，例如`a = 23`
+  - 对象被引用，例如`b = a`
+  - 对象被作为参数，传入到一个函数中，例如`f(a)`
+  - 对象作为一个元素，存储在容器中，例如`list1 = [a, a]`
+
+  导致引用计数-1的情况：
+
+  - 对象的别名被显式销毁，例如`del a`
+  - 对象的别名被赋予新的对象，例如`a = 24`
+  - 一个对象离开它的作用域，例如f函数执行完毕时，f函数中的局部变量（全局变量不会）
+  - 对象所在的容器被销毁，或从容器中删除对象
+
+  引用计数可能会导致循环引用问题，而循环引用会导致内存泄露(循环引用会导致**不再被程序使用的对象，其引用计数始终无法降到 0**，从而无法被内存管理器回收，最终造成内存泄漏。)，如下面的代码所示。为了解决这个问题，Python中引入了“标记-清除”和“分代收集”。在创建一个对象的时候，对象被放在第一代中，如果在第一代的垃圾检查中对象存活了下来，该对象就会被放到第二代中，同理在第二代的垃圾检查中对象存活下来，该对象就会被放到第三代中。
+
+  > 标记-清除
+  >
+  > #### 核心思想
+  >
+  > 通过 “标记” 和 “清除” 两个阶段，识别并回收所有 “不可达” 的对象（即程序无法再访问的对象）。
+  >
+  > #### 工作流程
+  >
+  > 1. **标记阶段（Mark）**
+  >    - 从 “根对象”（Root Objects）开始遍历所有可达对象（被根对象直接或间接引用的对象）。
+  >    - 根对象通常包括：全局变量、当前栈帧中的局部变量、寄存器中的对象等（程序运行时必然能访问到的对象）。
+  >    - 遍历过程中，将所有可达对象标记为 “存活”。
+  > 2. **清除阶段（Sweep）**
+  >    - 遍历整个内存空间，回收所有未被标记（即 “不可达”）的对象，释放其占用的内存。
+  >    - 同时，清除所有对象的标记，为下一次回收做准备。
+
+  > 分代收集
+  >
+  > #### 核心思想
+  >
+  > 基于 “**大部分对象的生命周期很短**” 的统计规律（弱代假说），将对象按存活时间分为不同 “代”（Generation），对不同代采用不同频率的回收策略：存活时间越短（年轻代），回收频率越高；存活时间越长（老年代），回收频率越低。
+  >
+  > #### 工作原理
+  >
+  > 1. **分代划分**
+  >    - 通常分为 3 代：年轻代（Young Generation）、中年代（Middle Generation）、老年代（Old Generation）（不同语言可能有差异，如 Java 分新生代、老年代）。
+  >    - 新创建的对象放入年轻代，每次回收后存活的对象 “晋升” 到更老的代（年龄递增）。
+  > 2. **回收策略**
+  >    - 年轻代：对象数量多、生命周期短，采用频繁、快速的回收（如复制算法，效率高）。
+  >    - 老年代：对象存活时间长、数量少，采用较少频率的回收（如标记 - 清除或标记 - 整理算法）。
+  >    - 整体回收频率：年轻代 > 中年代 > 老年代。
+
+  > - **标记 - 清除是基础算法**，分代收集是基于标记 - 清除（或其他基础算法）的优化策略。
+  > - 分代收集通过 “按代回收” 减少标记 - 清除的扫描范围，提高整体效率；而标记 - 清除负责具体的 “识别不可达对象并回收” 的工作。
+
+  ```python
+  # 循环引用会导致内存泄露 - Python除了引用技术还引入了标记清理和分代回收
+  # 在Python 3.6以前如果重写__del__魔术方法会导致循环引用处理失效
+  # 如果不想造成循环引用可以使用弱引用
+  list1 = []
+  list2 = [] 
+  list1.append(list2)
+  list2.append(list1)
+  ```
+
+  以下情况会导致垃圾回收：
+
+  - 调用`gc.collect()`
+  - `gc`模块的计数器达到阀值
+  - 程序退出
+
+  如果循环引用中两个对象都定义了`__del__`方法，`gc`模块不会销毁这些不可达对象，因为gc模块不知道应该先调用哪个对象的`__del__`方法，这个问题在Python 3.6中得到了解决。
+
+  也可以通过`weakref`模块构造弱引用的方式来解决循环引用的问题。
+
+- 魔法属性和方法（请参考《Python魔法方法指南》）
+
+  在 Python 中，**魔法属性（Magic Attributes）** 和**魔法方法（Magic Methods）** 是指以双下划线 `__` 开头和结尾的特殊属性与方法（也称为 “特殊属性”“特殊方法”）。它们由 Python 解释器自动调用，用于实现对象的核心功能（如运算、比较、初始化等），是 Python 面向对象编程的底层机制。
+
+  **一、魔法属性（Magic Attributes）**
+  
+  魔法属性是类或实例自带的特殊属性，无需手动定义，可直接访问，用于获取对象的元信息（如类型、文档、模块等）。
+  
+  **二、魔法方法（Magic Methods）**
+  
+  魔法方法是类中定义的特殊方法，由解释器在特定场景下自动调用（无需手动调用），用于实现对象的核心行为（如初始化、运算、比较等）。
+  
+  有几个小问题请大家思考：
+  
+  - 自定义的对象能不能使用运算符做运算？
+  
+    在 Python 中，**自定义对象可以通过运算符进行运算**，但需要通过重写特定的 “魔法方法”（以双下划线 `__` 开头和结尾的特殊方法）来实现。这些方法定义了对象与运算符交互的规则，让自定义对象能像内置类型（如整数、列表）一样支持 `+`、`-`、`*`、`>`、`==` 等运算。
+  
+    **核心原理**
+  
+    Python 的运算符本质是 “语法糖”，例如 `a + b` 会被解释器自动转换为调用 `a.__add__(b)` 方法。因此，只要在自定义类中实现对应的魔法方法，就能让对象支持相应的运算符。
+  
+  - 自定义的对象能不能放到`set`中？能去重吗？
+  
+    在 Python 中，**自定义对象可以放到 `set` 中**，但需要满足 `set` 对元素的要求（可哈希）；同时，**能否去重取决于对象的哈希值和相等性判断逻辑**，需要通过重写特定魔法方法实现。
+  
+    **一、自定义对象放入 `set` 的前提：可哈希（Hashable）**
+  
+    `set` 是基于哈希表实现的，要求元素必须是**可哈希的**（即具有固定的哈希值，且支持相等性判断）。对于自定义对象，需满足：
+  
+    1. 实现 `__hash__(self)` 方法：返回对象的哈希值（整数），用于哈希表存储。
+    2. 实现 `__eq__(self, other)` 方法：定义对象的相等性判断逻辑，用于检测哈希冲突时的元素是否真正相等。
+  
+    如果未实现这两个方法，Python 会使用默认逻辑（基于对象的内存地址），但这通常不符合实际去重需求。
+  
+  - 自定义的对象能不能作为`dict`的键？
+  
+    在 Python 中，**自定义对象可以作为 `dict` 的键**，但需要满足 `dict` 对键的核心要求 ——**可哈希性（hashable）**。这一特性需要通过重写特定的魔法方法来实现，与自定义对象能否放入 `set` 的原理一致。
+  
+  - 自定义的对象能不能使用上下文语法？
+  
+    自定义对象**可以使用上下文语法**，只需实现 `__enter__` 和 `__exit__` 方法：
+  
+    - `__enter__` 负责准备资源（如建立连接）并返回操作对象。
+    - `__exit__` 负责清理资源（如关闭连接），并可处理异常。
+  
+    这种机制能让代码更简洁、安全，避免因忘记释放资源导致的问题，是 Python 中管理资源的推荐方式。
+  
+- 混入（Mixin）
+
+  在 Python 中，**混入（Mixin）** 是一种特殊的类设计模式，用于**向其他类提供可复用的功能**，但自身通常不单独实例化。它的核心作用是**通过多继承实现功能组合**，避免单一继承带来的代码冗余和扩展性问题。
+
+  **混入的核心特点**
+
+  1. **功能单一**：一个混入通常通常只实现一组相关功能（如日志记录、序列化等），专注于 “做一件事”。
+  2. **不单独实例化**：混入类的设计目的是被其他类继承，而非单独创建对象（无实际业务意义）。
+  3. **依赖宿主类**：混入类可能依赖于被继承的 “宿主类” 实现某些某些方法或属性（需宿主类实现）。
+  4. **多继承组合**：通过多继承，一个类可以同时继承多个混入类，组合多种功能。
+
+  ### 混入的典型应用场景
+
+  当多个类需要共享相同功能（但不属于同一继承体系）时，使用混入可以避免代码重复。例如：日志记录、数据验证、缓存等功能。
+
+  例子：自定义字典限制只有在指定的key不存在时才能在字典中设置键值对。
+
+  ```python
+  class SetOnceMappingMixin:
+      """自定义混入类"""
+      # __slots__ = () 表示该类不允许添加实例属性，仅作为功能混入使用。
+      # 不允许添加实例属性，节省内存
+      __slots__ = ()
+  
+      def __setitem__(self, key, value):
+          if key in self:
+              raise KeyError(str(key) + ' already set')
+          # 调用父类的__setitem__方法（实际会调用dict的__setitem__）
+          return super().__setitem__(key, value)
+  
+  
+  class SetOnceDict(SetOnceMappingMixin, dict):
+      """自定义字典"""
+      pass
+  
+  
+  my_dict= SetOnceDict()
+  try:
+      my_dict['username'] = 'jackfrued'
+      my_dict['username'] = 'hellokitty'
+  except KeyError:
+      pass
+  print(my_dict)
+  ```
+
+- 元编程和元类
+
+  对象是通过类创建的，类是通过元类创建的，元类提供了创建类的元信息。所有的类都直接或间接的继承自`object`，所有的元类都直接或间接的继承自`type`。
+
+  例子：用元类实现单例模式。
+
+  ```python
+  import threading
+  
+  
+  class SingletonMeta(type):
+      """自定义元类：实现线程安全的单例模式"""
+  
+      def __init__(cls, *args, **kwargs):
+          # 初始化类属性：存储唯一实例和线程锁
+          cls.__instance = None  # 用于保存类的唯一实例
+          cls.__lock = threading.RLock()  # 可重入锁，确保多线程安全
+          super().__init__(*args, **kwargs)  # 调用父类（type）的初始化方法
+  
+      def __call__(cls, *args, **kwargs):
+          # 重写__call__方法：控制类的实例化过程
+          if cls.__instance is None:  # 第一次检查：未创建实例时进入
+              with cls.__lock:  # 加锁：确保多线程环境下只有一个线程进入创建逻辑
+                  if cls.__instance is None:  # 第二次检查：防止多线程同时通过第一次检查
+                      # 调用父类（type）的__call__方法创建实例（即调用President的__init__）
+                      cls.__instance = super().__call__(*args, **kwargs)
+          return cls.__instance  # 返回唯一实例
+  
+  
+  class President(metaclass=SingletonMeta):
+      """总统(单例类)"""
+      
+      pass
+  ```
+
+- 面向对象设计原则
+
+  - 单一职责原则 （**S**RP）- 一个类只做该做的事情（类的设计要高内聚）
+  - 开闭原则 （**O**CP）- 软件实体应该对扩展开发对修改关闭
+  - 依赖倒转原则（DIP）- 面向抽象编程（在弱类型语言中已经被弱化）
+  - 里氏替换原则（**L**SP） - 任何时候可以用子类对象替换掉父类对象
+  - 接口隔离原则（**I**SP）- 接口要小而专不要大而全（Python中没有接口的概念）
+  - 合成聚合复用原则（CARP） - 优先使用强关联关系而不是继承关系复用代码
+  - 最少知识原则（迪米特法则，Lo**D**）- 不要给没有必然联系的对象发消息
+
+  > **说明**：上面加粗的字母放在一起称为面向对象的**SOLID**原则。
+
+- GoF设计模式
+
+  - 创建型模式：单例、工厂、建造者、原型
+  - 结构型模式：适配器、门面（外观）、代理
+  - 行为型模式：迭代器、观察者、状态、策略
+
+  例子：可插拔的哈希算法（策略模式）。
+
+  ```python
+  class StreamHasher:
+      """哈希摘要生成器"""
+  
+      def __init__(self, alg='md5', size=4096):
+          self.size = size
+          alg = alg.lower()
+          self.hasher = getattr(__import__('hashlib'), alg.lower())()
+  
+      def __call__(self, stream):
+          return self.to_digest(stream)
+  
+      def to_digest(self, stream):
+          """生成十六进制形式的摘要"""
+          for buf in iter(lambda: stream.read(self.size), b''):
+              self.hasher.update(buf)
+          return self.hasher.hexdigest()
+  
+  def main():
+      """主函数"""
+      hasher1 = StreamHasher()
+      with open('Python-3.7.6.tgz', 'rb') as stream:
+          print(hasher1.to_digest(stream))
+      hasher2 = StreamHasher('sha1')
+      with open('Python-3.7.6.tgz', 'rb') as stream:
+          print(hasher2(stream))
+  
+  
+  if __name__ == '__main__':
+      main()
+  ```
+
+### 迭代器和生成器
+
+- 迭代器是实现了迭代器协议的对象。
+
+  - Python中没有像`protocol`或`interface`这样的定义协议的关键字。
+  - Python中用魔术方法表示协议。
+  - `__iter__`和`__next__`魔术方法就是迭代器协议。
+
+  ```python
+  class Fib(object):
+      """迭代器：生成斐波那契数列的前num个元素"""
+      
+      def __init__(self, num):
+          self.num = num  # 要生成的斐波那契数列元素个数
+          self.a, self.b = 0, 1  # 斐波那契数列的初始值（a代表当前值，b代表下一个值）
+          self.idx = 0  # 当前迭代到的索引（从0开始计数）
+     
+      def __iter__(self):
+          # 迭代器协议：返回自身（因为自身实现了__next__方法）
+          return self
+  
+      def __next__(self):
+          # 迭代器协议：返回下一个元素，没有元素时抛出StopIteration
+          if self.idx < self.num:
+              # 计算下一个斐波那契数（更新a和b的值）
+              self.a, self.b = self.b, self.a + self.b
+              self.idx += 1  # 索引+1，记录已生成的元素个数
+              return self.a  # 返回当前的斐波那契数
+          # 当索引达到num时，抛出StopIteration终止迭代
+          raise StopIteration()
+  ```
+
+- 生成器是语法简化版的迭代器。
+
+  ```python
+  def fib(num):
+      """生成器"""
+      a, b = 0, 1
+      for _ in range(num):
+          a, b = b, a + b
+          yield a
+  ```
+
+  > `yield` 关键字
+  >
+  > - 每次执行 `yield a` 时，会返回 `a` 的值给调用者，同时**暂停函数执行**，保存当前的变量状态（`a`、`b` 和循环计数）。
+  > - 下次调用生成器的 `__next__` 方法时，函数会从暂停的位置继续执行，直到再次遇到 `yield` 或函数结束。
+
+- 生成器进化为协程。
+
+  生成器对象可以使用`send()`方法发送数据，发送的数据会成为生成器函数中通过`yield`表达式获得的值。这样，生成器就可以作为协程使用，协程简单的说就是可以相互协作的子程序。
+
+  ```python
+  def calc_avg():
+      """流式计算平均值"""
+      total, counter = 0, 0
+      avg_value = None
+      while True:
+          value = yield avg_value
+          total, counter = total + value, counter + 1
+          avg_value = total / counter
+  
+  # 创建生成器对象
+  gen = calc_avg()
+  
+  # 启动生成器：必须先调用 next(gen) 或 gen.send(None) 启动生成器，使其执行到 yield 处暂停（否则直接调用 send() 会报错）。
+  next(gen)
+  print(gen.send(10))
+  print(gen.send(20))
+  print(gen.send(30))
+  ```
+
+### 并发编程
+
+Python中实现并发编程的三种方案：多线程、多进程和异步I/O。并发编程的好处在于可以提升程序的执行效率以及改善用户体验；坏处在于并发的程序不容易开发和调试，同时对其他程序来说它并不友好。
+
+- 多线程：Python中提供了`Thread`类并辅以`Lock`、`Condition`、`Event`、`Semaphore`和`Barrier`。Python中有GIL来防止多个线程同时执行本地字节码，这个锁对于CPython是必须的，因为CPython的内存管理并不是线程安全(多线程环境中，一段代码或数据结构在被多个线程同时访问和操作时，仍能保证**结果的正确性、一致性和可预测性**，不会出现数据混乱、逻辑错误或意外行为。)的，因为GIL的存在多线程并不能发挥CPU的多核特性。
+
+  ```python
+  """
+  面试题：进程和线程的区别和联系？
+  进程 - 操作系统分配内存的基本单位 - 一个进程可以包含一个或多个线程
+  线程 - 操作系统分配CPU的基本单位
+  并发编程（concurrent programming）
+  1. 提升执行性能 - 让程序中没有因果关系的部分可以并发的执行
+  2. 改善用户体验 - 让耗时间的操作不会造成程序的假死
+  """
+  # 用于查找符合特定模式的文件路径（如images/*.png匹配所有 PNG 图片）。
+  import glob
+  import os
+  import threading
+  # PIL 库（Pillow）的图像处理模块，用于打开图片、生成缩略图和保存图片。
+  from PIL import Image
+  
+  PREFIX = 'thumbnails'
+  
+  
+  def generate_thumbnail(infile, size, format='PNG'):
+      """生成指定图片文件的缩略图"""
+      # 分离文件名和扩展名（如"images/a.png" → file="images/a", ext=".png"）
+      file, ext = os.path.splitext(infile)
+      # 提取文件名（去掉路径，如"images/a" → "a"）
+      file = file[file.rfind('/') + 1:]
+      # 构造缩略图保存路径（如"thumbnails/a_32_32.png"）
+      outfile = f'{PREFIX}/{file}_{size[0]}_{size[1]}.{ext}'
+      # 打开原始图片
+      img = Image.open(infile)
+      # 生成缩略图（ANTIALIAS表示抗锯齿，使缩略图更清晰）
+      img.thumbnail(size, Image.ANTIALIAS)
+      # 保存缩略图
+      img.save(outfile, format)
+  
+  
+  def main():
+      """主函数"""
+      # 若thumbnails目录不存在，则创建
+      if not os.path.exists(PREFIX):
+          os.mkdir(PREFIX)
+      # 遍历images目录下所有PNG图片
+      for infile in glob.glob('images/*.png'):
+          # 为每种尺寸创建一个线程处理
+          for size in (32, 64, 128):
+              # 创建并启动线程，目标函数为generate_thumbnail
+              threading.Thread(
+                  target=generate_thumbnail, # 指定线程要执行的函数
+                  args=(infile, (size, size))  # # 指定传给函数的参数
+              ).start()
+  			
+  
+  if __name__ == '__main__':
+  	main()
+  ```
+
+  多个线程竞争资源的情况。
+
+  ```python
+  """
+  多线程程序如果没有竞争资源处理起来通常也比较简单
+  当多个线程竞争临界资源的时候如果缺乏必要的保护措施就会导致数据错乱
+  说明：临界资源就是被多个线程竞争的资源
+  """
+  import time
+  import threading
+  
+  from concurrent.futures import ThreadPoolExecutor
+  
+  
+  class Account(object):
+      """银行账户"""
+  
+      def __init__(self):
+          self.balance = 0.0  # 账户余额，初始为0
+          self.lock = threading.Lock()  # 互斥锁，用于保护临界资源
+  
+      def deposit(self, money):
+          # 通过with语句使用锁，自动获取和释放锁
+          with self.lock:
+              # 计算新余额
+              new_balance = self.balance + money
+              # 模拟耗时操作（放大线程安全问题）
+              time.sleep(0.001)
+              # 更新余额
+              self.balance = new_balance
+  
+  
+  def main():
+      """主函数"""
+      account = Account()  # 创建银行账户实例
+      # 创建线程池，最多同时运行10个线程
+      pool = ThreadPoolExecutor(max_workers=10)
+      futures = []
+      # 提交100次存款任务（每次存入1元）
+      for _ in range(100):
+          # 向线程池提交deposit方法，参数为1
+          future = pool.submit(account.deposit, 1)
+          futures.append(future)
+      # 关闭线程池，等待所有任务完成
+      pool.shutdown()
+      # 等待所有任务执行完毕（获取结果，此处无返回值，仅确保完成）
+      for future in futures:
+          future.result()
+      # 打印最终余额
+      print(account.balance)  # 输出：100.0（线程安全，结果正确）
+  
+  
+  if __name__ == '__main__':
+      main()
+  ```
+
+  修改上面的程序，启动5个线程向账户中存钱，5个线程从账户中取钱，取钱时如果余额不足就暂停线程进行等待。为了达到上述目标，需要对存钱和取钱的线程进行调度，在余额不足时取钱的线程暂停并释放锁，而存钱的线程将钱存入后要通知取钱的线程，使其从暂停状态被唤醒。可以使用`threading`模块的`Condition`来实现线程调度，该对象也是基于锁来创建的，代码如下所示：
+
+  ```python
+  """
+  多个线程竞争一个资源 - 保护临界资源 - 锁（Lock/RLock）
+  多个线程竞争多个资源（线程数>资源数） - 信号量（Semaphore）
+  多个线程的调度 - 暂停线程执行/唤醒等待中的线程 - Condition
+  """
+  from concurrent.futures import ThreadPoolExecutor
+  from random import randint
+  from time import sleep
+  
+  import threading
+  
+  
+  class Account:
+      """银行账户"""
+  
+      def __init__(self, balance=0):
+          self.balance = balance  # 账户余额
+          # 创建可重入锁（RLock），允许同一线程多次获取锁
+          lock = threading.RLock()
+          # 基于锁创建条件变量（Condition），用于线程间通信
+          # condition 条件变量：是线程同步的核心，内部包含一个锁（RLock），提供 wait()（等待）和 notify_all()（通知）方法，实现线程间的协作。
+          self.condition = threading.Condition(lock)
+  
+      def withdraw(self, money):
+      """取钱"""
+      with self.condition:  # 获取条件变量的锁，确保操作原子性
+          # 循环检查：若余额不足，让线程等待（避免虚假唤醒）
+          while money > self.balance:
+              self.condition.wait()  # 释放锁，进入等待状态，直到被通知
+          # 余额足够时执行取款
+          new_balance = self.balance - money
+          sleep(0.001)  # 模拟耗时操作（如数据库更新）
+          self.balance = new_balance
+  
+      def deposit(self, money):
+      """存钱"""
+      with self.condition:  # 获取锁，确保操作原子性
+          # 执行存款
+          new_balance = self.balance + money
+          sleep(0.001)  # 模拟耗时操作
+          self.balance = new_balance
+          # 通知所有等待的线程：余额已更新，可能满足取款条件
+          self.condition.notify_all()
+  
+  
+  def add_money(account):
+      while True:
+          money = randint(5, 10)
+          account.deposit(money)
+          print(threading.current_thread().name, 
+                ':', money, '====>', account.balance)
+          sleep(0.5)
+  
+  
+  def sub_money(account):
+      while True:
+          money = randint(10, 30)
+          account.withdraw(money)
+          print(threading.current_thread().name, 
+                ':', money, '<====', account.balance)
+          sleep(1)
+  
+  
+  def main():
+      account = Account()
+      with ThreadPoolExecutor(max_workers=15) as pool:
+          for _ in range(5):
+              pool.submit(add_money, account)
+          for _ in range(10):
+              pool.submit(sub_money, account)
+  
+  
+  if __name__ == '__main__':
+      main()
+  ```
+
+- 多进程：多进程可以有效的解决GIL的问题(**限制了 Python 多线程的并行能力，导致 CPU 密集型任务无法通过多线程真正利用多核 CPU**。)，实现多进程主要的类是`Process`，其他辅助的类跟`threading`模块中的类似，进程间共享数据可以使用管道、套接字等，在`multiprocessing`模块中有一个`Queue`类，它基于管道和锁机制提供了多个进程共享的队列。下面是官方文档上关于多进程和进程池的一个示例。
+
+  ```python
+  """
+  多进程和进程池的使用
+  多线程因为GIL的存在不能够发挥CPU的多核特性
+  对于计算密集型任务应该考虑使用多进程
+  time python3 example22.py
+  real    0m11.512s
+  user    0m39.319s
+  sys     0m0.169s
+  使用多进程后实际执行时间为11.512秒，而用户时间39.319秒约为实际执行时间的4倍
+  这就证明我们的程序通过多进程使用了CPU的多核特性，而且这台计算机配置了4核的CPU
+  """
+  import concurrent.futures
+  import math
+  
+  PRIMES = [
+      1116281,
+      1297337,
+      104395303,
+      472882027,
+      533000389,
+      817504243,
+      982451653,
+      112272535095293,
+      112582705942171,
+      112272535095293,
+      115280095190773,
+      115797848077099,
+      1099726899285419
+  ] * 5
+  
+  
+  def is_prime(n):
+      """判断素数"""
+      # 若n是偶数（且不是2），直接返回False（偶数是偶数不是素数）
+      if n % 2 == 0:
+          return False
+  
+      # 计算n的平方根（向下取整）
+      sqrt_n = int(math.floor(math.sqrt(n)))
+      # 从3开始，步长为2（只检查奇数），直到sqrt_n
+      for i in range(3, sqrt_n + 1, 2):
+          if n % i == 0:  # 若能被i整除，不是素数
+              return False
+      return True  # 所有检查通过，是素数
+  
+  
+  def main():
+      """主函数"""
+      with concurrent.futures.ProcessPoolExecutor() as executor:
+          for number, prime in zip(PRIMES, executor.map(is_prime, PRIMES)):
+              print('%d is prime: %s' % (number, prime))
+  
+  
+  if __name__ == '__main__':
+      main()
+  ```
+
+  > **重点**：**多线程和多进程的比较**。
+  >
+  > 以下情况需要使用多线程：
+  >
+  > 1. 程序需要维护许多共享的状态（尤其是可变状态），Python中的列表、字典、集合都是线程安全的，所以使用线程而不是进程维护共享状态的代价相对较小。
+  > 2. 程序会花费大量时间在I/O操作上，没有太多并行计算的需求且不需占用太多的内存。
+  >
+  > 以下情况需要使用多进程：
+  >
+  > 1. 程序执行计算密集型任务（如：字节码操作、数据处理、科学计算）。
+  > 2. 程序的输入可以并行的分成块，并且可以将运算结果合并。
+  > 3. 程序在内存使用方面没有任何限制且不强依赖于I/O操作（如：读写文件、套接字等）。
+
+- 异步处理：从调度程序的任务队列中挑选任务，该调度程序以交叉的形式执行这些任务，我们并不能保证任务将以某种顺序去执行，因为执行顺序取决于队列中的一项任务是否愿意将 CPU 处理时间让位给另一项任务。异步任务通常通过多任务协作处理的方式来实现，由于执行时间和顺序的不确定，因此需要通过回调式编程或者`future`对象来获取任务执行的结果。Python 3 通过`asyncio`模块和`await`和`async`关键字（在 Python 3.7 中正式被列为关键字）来支持异步处理。
+
+  ```python
+  """
+  异步I/O - async / await
+  """
+  import asyncio
+  
+  
+  def num_generator(m, n):
+      """指定范围的数字生成器"""
+      yield from range(m, n + 1)
+  
+  
+  async def prime_filter(m, n):
+      """素数过滤器：找出m到n之间的所有素数"""
+      primes = []
+      for i in num_generator(m, n):
+          flag = True  # 标记是否为素数
+          # 检查i是否能被2到√i之间的数整除
+          for j in range(2, int(i **0.5 + 1)):
+              if i % j == 0:
+                  flag = False
+                  break
+          if flag:
+              print('Prime =>', i)  # 打印素数
+              primes.append(i)
+          
+          # 暂停0.001秒，允许事件循环切换到其他协程
+          await asyncio.sleep(0.001)
+      return tuple(primes)  # 返回找到的素数
+  
+  
+  async def square_mapper(m, n):
+      """平方映射器：计算m到n之间所有数字的平方"""
+      squares = []
+      for i in num_generator(m, n):
+          print('Square =>', i * i)  # 打印平方结果
+          squares.append(i * i)
+          
+          # 暂停0.001秒，允许事件循环切换到其他协程
+          await asyncio.sleep(0.001)
+      return squares  # 返回平方结果列表
+  
+  
+  def main():
+      """主函数：启动事件循环，执行异步任务"""
+      loop = asyncio.get_event_loop()  # 获取事件循环
+      # 并发运行两个协程：素数过滤（2-100）和平方映射（1-100）
+      future = asyncio.gather(prime_filter(2, 100), square_mapper(1, 100))
+      # 添加回调函数：任务完成后打印结果
+      future.add_done_callback(lambda x: print(x.result()))
+      # 运行事件循环，直到所有任务完成
+      loop.run_until_complete(future)
+      # 关闭事件循环
+      loop.close()
+  
+  
+  if __name__ == '__main__':
+      main()
+  ```
+
+  > **说明**：上面的代码使用`get_event_loop`函数获得系统默认的事件循环，通过`gather`函数可以获得一个`future`对象，`future`对象的`add_done_callback`可以添加执行完成时的回调函数，`loop`对象的`run_until_complete`方法可以等待通过`future`对象获得协程执行结果。
+
+  Python 中有一个名为`aiohttp`的三方库，它提供了异步的 HTTP 客户端和服务器，这个三方库可以跟`asyncio`模块一起工作，并提供了对`Future`对象的支持。Python 3.6中引入了`async`和`await`来定义异步执行的函数以及创建异步上下文，在 Python 3.7 中它们正式成为了关键字。下面的代码异步的从5个URL中获取页面并通过正则表达式的命名捕获组提取了网站的标题。
+
+  ```python
+  import asyncio
+  import re
+  
+  import aiohttp
+  
+  PATTERN = re.compile(r'\<title\>(?P<title>.*)\<\/title\>')
+  
+  
+  async def fetch_page(session, url):
+      # 使用异步上下文管理器发送GET请求，ssl=False禁用SSL验证（避免某些网站证书问题）
+      async with session.get(url, ssl=False) as resp:
+          # 等待并返回响应的文本内容（HTML）
+          return await resp.text()
+  
+  
+  async def show_title(url):
+      # 创建异步HTTP会话（类似浏览器的会话）
+      async with aiohttp.ClientSession() as session:
+          # 调用fetch_page获取HTML，等待其完成
+          html = await fetch_page(session, url)
+          # 用正则表达式提取<title>标签内容并打印
+          print(PATTERN.search(html).group('title'))
+  
+  
+  def main():
+      # 要爬取的URL列表
+      urls = (
+          'https://www.python.org/',
+          'https://git-scm.com/',
+          'https://www.jd.com/',
+          'https://www.taobao.com/',
+          'https://www.douban.com/'
+      )
+      # 获取事件循环（异步任务的调度中心）
+      loop = asyncio.get_event_loop()
+      # 创建任务列表：为每个URL创建一个show_title协程
+      cos = [show_title(url) for url in urls]
+      # 运行事件循环，等待所有任务完成（asyncio.wait会等待所有协程执行完毕）
+      loop.run_until_complete(asyncio.wait(cos))
+      # 关闭事件循环
+      loop.close()
+  
+  
+  if __name__ == '__main__':
+      main()
+  ```
+
+  > **重点**：**异步I/O与多进程的比较**。
+  >
+  > 当程序不需要真正的并发性或并行性，而是更多的依赖于异步处理和回调时，`asyncio`就是一种很好的选择。如果程序中有大量的等待与休眠时，也应该考虑`asyncio`，它很适合编写没有实时数据处理需求的 Web 应用服务器。
+
+  Python 还有很多用于处理并行任务的三方库，例如：`joblib`、`PyMP`等。实际开发中，要提升系统的可扩展性和并发性通常有垂直扩展（增加单个节点的处理能力）和水平扩展（将单个节点变成多个节点）两种做法。可以通过消息队列来实现应用程序的解耦合，消息队列相当于是多线程同步队列的扩展版本，不同机器上的应用程序相当于就是线程，而共享的分布式消息队列就是原来程序中的Queue。消息队列（面向消息的中间件）的最流行和最标准化的实现是 AMQP（高级消息队列协议），AMQP 源于金融行业，提供了排队、路由、可靠传输、安全等功能，最著名的实现包括：Apache 的 ActiveMQ、RabbitMQ 等。
+
+  要实现任务的异步化，可以使用名为`Celery`的三方库。`Celery`是 Python 编写的分布式任务队列，它使用分布式消息进行工作，可以基于 RabbitMQ 或 Redis 来作为后端的消息代理。
+
+## 30.Web前端入门
 
 
 
